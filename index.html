@@ -193,10 +193,19 @@
         // Import Firebase modules from the CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        // This configuration is now hardcoded to allow deployment on platforms like GitHub Pages.
+        // Replace these values with your own Firebase project's configuration.
+        const firebaseConfig = {
+          apiKey: "AIzaSyBWUuPnKsxDDpGvI4tG4XaskHmxNAKorhk",
+          authDomain: "ia-rpg-64b7f.firebaseapp.com",
+          projectId: "ia-rpg-64b7f",
+          storageBucket: "ia-rpg-64b7f.firebasestorage.app",
+          messagingSenderId: "289306101557",
+          appId: "1:289306101557:web:15f2bfa6505a35b3cbee7c"
+        };
         
         // Initialize Firebase services
         const app = initializeApp(firebaseConfig);
@@ -204,7 +213,7 @@
         const db = getFirestore(app);
 
         // --- App Configuration ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const collectionRef = collection(db, "rpg_sessions");
 
         // --- Global State Variables ---
         let gameState = {};
@@ -373,7 +382,7 @@
                 let jsonText = result.candidates[0].content.parts[0].text.replace(/^```json\s*/, '').replace(/```$/, '');
                 const updateData = JSON.parse(jsonText);
                 
-                const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", currentRoomCode);
+                const roomRef = doc(collectionRef, currentRoomCode);
                 
                 // Create a mutable copy of the game state to apply updates
                 const newGameState = JSON.parse(JSON.stringify(gameState));
@@ -584,7 +593,7 @@
                                 alert('Aguarde que todos os jogadores criem os seus personagens.');
                                 return;
                             }
-                            const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", currentRoomCode);
+                            const roomRef = doc(collectionRef, currentRoomCode);
                             await updateDoc(roomRef, { status: 'playing' });
                             // The first story node is generated when the game starts
                             await generateStoryNode("A aventura começa.", null);
@@ -599,7 +608,7 @@
         // --- Room Management ---
         async function joinRoom(roomCode) {
             joinErrorMessage.textContent = '';
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", roomCode);
+            const roomRef = doc(collectionRef, roomCode);
             const roomSnap = await getDoc(roomRef);
 
             if (!roomSnap.exists()) {
@@ -631,7 +640,7 @@
             try {
                 await authReady; // Wait for authentication to complete
                 const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", roomCode);
+                const roomRef = doc(collectionRef, roomCode);
                 
                 currentRoomCode = roomCode;
                 
@@ -727,7 +736,7 @@
                 let jsonText = result.candidates[0].content.parts[0].text.replace(/^```json\s*/, '').replace(/```$/, '');
                 const data = JSON.parse(jsonText);
                 
-                const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", currentRoomCode);
+                const roomRef = doc(collectionRef, currentRoomCode);
                 await updateDoc(roomRef, { generatedClasses: data.classes });
 
             } catch (error) { console.error("Erro ao gerar classes:", error); errorMessage.textContent = 'Não foi possível gerar as classes. Tente outro tema.';
@@ -742,7 +751,7 @@
                 return;
             }
             errorMessage.textContent = '';
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", currentRoomCode);
+            const roomRef = doc(collectionRef, currentRoomCode);
             
             const nextStatus = gameState.isSolo ? 'solo_character_creation' : 'lobby';
             await updateDoc(roomRef, {
@@ -770,7 +779,7 @@
                 playerId: currentUser.uid
             };
 
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rpg_sessions", currentRoomCode);
+            const roomRef = doc(collectionRef, currentRoomCode);
             
             if (gameState.isSolo && gameState.characters.length + 1 >= gameState.playerLimit) {
                  await updateDoc(roomRef, {
@@ -819,14 +828,11 @@
                     resolve(user);
                 } else {
                     try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        // For standalone deployment, always use anonymous sign-in.
+                        await signInAnonymously(auth);
                     } catch (error) {
                         console.error("Falha na autenticação:", error);
-                        authStatus.textContent = 'Erro de ligação. Verifique a configuração do Firebase.';
+                        authStatus.textContent = 'Erro de ligação. Verifique a configuração e as regras de segurança do Firebase.';
                         reject(error);
                     }
                 }
