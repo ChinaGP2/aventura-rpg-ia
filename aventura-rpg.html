@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Aventuras RPG com IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        body { font-family: 'EB Garamond', serif; overflow-x: hidden; }
+        .title-font { font-family: 'Cinzel Decorative', serif; }
+        .story-text { white-space: pre-wrap; overflow-wrap: break-word; }
+        .action-button { background: linear-gradient(145deg, #b91c1c, #7f1d1d); border: 1px solid #fef08a; color: #fefce8; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
+        .action-button:hover:not(:disabled) { background: linear-gradient(145deg, #c82a2a, #902a2a); transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0, 0, 0, 0.5); }
+        .action-button:disabled { background: #57534e; cursor: not-allowed; opacity: 0.6; }
+        .secondary-button { background: linear-gradient(145deg, #075985, #0c4a6e); border: 1px solid #7dd3fc; color: #e0f2fe; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
+        .secondary-button:hover:not(:disabled) { background: linear-gradient(145deg, #0369a1, #083344); }
+        .secondary-button:disabled { background: #4b5563; cursor: not-allowed; opacity: 0.6; }
+        .suggestion-chip { background-color: rgba(12, 74, 110, 0.5); border: 1px solid #7dd3fc; transition: all 0.2s ease-in-out; cursor: pointer; }
+        .suggestion-chip:hover { background-color: rgba(3, 105, 161, 0.7); border-color: #e0f2fe; }
+        #background { background-image: url('https://images.unsplash.com/photo-1532009877282-3340270e1c41?q=80&w=1974&auto-format&fit=crop'); background-size: cover; background-position: center; filter: blur(5px) brightness(0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .container { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(253, 224, 71, 0.2); }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; border-top-color: #fef08a; width: 40px; height: 40px; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .divider { height: 1px; background: linear-gradient(to right, transparent, rgba(253, 224, 71, 0.5), transparent); margin: 1.5rem 0; }
+        #narrate-btn { background-color: rgba(253, 224, 71, 0.1); border: 1px solid rgba(253, 224, 71, 0.3); transition: all 0.2s ease-in-out; }
+        #narrate-btn:hover { background-color: rgba(253, 224, 71, 0.2); }
+        #narrate-btn.speaking svg { color: #fef08a; }
+        .inventory-item { background-color: rgba(0,0,0,0.3); border: 1px solid #a3a3a3; }
+        .health-bar-background { background-color: #4b5563; border-radius: 0.25rem; overflow: hidden; }
+        .health-bar-foreground { background-color: #dc2626; height: 100%; transition: width 0.5s ease-in-out; }
+        .character-card { transition: all 0.3s ease-in-out; }
+        .character-card.downed { opacity: 0.5; filter: grayscale(80%); }
+        .character-card.active-turn { box-shadow: 0 0 15px #fef08a; transform: scale(1.02); }
+        #map-container { position: relative; width: 100%; padding-top: 66.66%; background-image: url('https://images.unsplash.com/photo-1563863528865-8a6b72a26012?q=80&w=2070&auto-format&fit=crop'); background-size: cover; border-radius: 0.25rem; overflow: hidden; border: 1px solid rgba(253, 224, 71, 0.2); }
+        #fog-of-war { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: black; mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); -webkit-mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: mask-position 1s ease-in-out; -webkit-mask-position: 50% 50%; mask-position: 50% 50%; }
+        .map-marker { position: absolute; transform: translate(-50%, -50%); font-size: 24px; cursor: pointer; text-shadow: 0 0 5px black; }
+        .player-marker { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div id="background"></div>
+
+    <div id="entry-container" class="w-full max-w-md container rounded-lg shadow-2xl p-8 text-center">
+        <h1 class="text-5xl title-font text-yellow-200 mb-8">Crónicas da IA</h1>
+        <div class="space-y-4">
+            <button id="solo-play-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Jogar a Solo</button>
+            <button id="create-room-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Criar Sala Multijogador</button>
+            <button id="join-room-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Entrar numa Sala</button>
+        </div>
+        <p id="auth-status" class="text-gray-400 mt-4 text-sm h-10">A ligar ao servidor...</p>
+    </div>
+
+    <div id="join-room-container" class="w-full max-w-md container rounded-lg shadow-2xl p-8 hidden">
+        <h1 class="text-4xl title-font text-yellow-200 text-center mb-6">Entrar na Aventura</h1>
+        <input type="text" id="room-code-input" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white text-center text-2xl tracking-widest uppercase" placeholder="CÓDIGO DA SALA" maxlength="6">
+        <p id="join-error-message" class="text-red-400 text-center mt-4 h-5"></p>
+        <div class="mt-4 flex flex-col sm:flex-row gap-4">
+            <button id="back-to-entry-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Voltar</button>
+            <button id="confirm-join-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Entrar</button>
+        </div>
+    </div>
+
+    <div id="setup-container" class="w-full max-w-2xl container rounded-lg shadow-2xl p-8 hidden">
+        <h1 id="setup-title" class="text-4xl title-font text-yellow-200 text-center mb-6">Criar Aventura</h1>
+        <div class="mb-4">
+            <label for="theme-input" class="block text-sm font-medium text-yellow-100 mb-2">O tema da vossa jornada:</label>
+            <div class="flex gap-4">
+                <input type="text" id="theme-input" class="flex-grow bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400" placeholder="Ex: 'Piratas em busca da fonte da juventude'...">
+                <button id="generate-classes-btn" class="secondary-button font-bold py-2 px-4 rounded-lg">Gerar Classes</button>
+            </div>
+        </div>
+        <div class="mb-4">
+            <label id="player-limit-label" for="player-limit" class="block text-sm font-medium text-yellow-100 mb-2">Limite de jogadores:</label>
+            <select id="player-limit" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
+                <option value="1">1 Herói</option>
+                <option value="2">2 Heróis</option>
+                <option value="3" selected>3 Heróis</option>
+                <option value="4">4 Heróis</option>
+                <option value="5">5 Heróis</option>
+                <option value="6">6 Heróis</option>
+                <option value="7">7 Heróis</option>
+                <option value="8">8 Heróis</option>
+            </select>
+        </div>
+        <div class="divider"></div>
+        <p id="error-message" class="text-red-400 text-center mb-4 h-5"></p>
+        <div class="mt-6 flex flex-col sm:flex-row gap-4">
+            <button id="setup-back-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Voltar</button>
+            <button id="confirm-setup-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Confirmar Tema e Classes</button>
+        </div>
+    </div>
+
+    <div id="character-creation-container" class="w-full max-w-2xl container rounded-lg shadow-2xl p-8 hidden">
+        <h1 id="character-creation-title" class="text-4xl title-font text-yellow-200 text-center mb-6">Crie o seu Herói</h1>
+        <div class="p-4 border border-yellow-200/20 rounded-lg space-y-4">
+            <div class="flex flex-col sm:flex-row gap-4 items-center">
+                <input type="text" id="player-name-input" placeholder="Nome do Herói" class="w-full sm:flex-grow bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
+                <select id="player-class-select" class="w-full sm:w-48 bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
+                </select>
+            </div>
+            <textarea id="player-backstory-textarea" placeholder="Uma breve história do herói..." class="w-full mt-2 bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-sm focus:ring-yellow-400 focus:border-yellow-400" rows="3"></textarea>
+        </div>
+        <p id="creation-error-message" class="text-red-400 text-center my-4 h-5"></p>
+        <button id="confirm-character-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Confirmar Herói</button>
+    </div>
+
+    <div id="lobby-container" class="w-full max-w-md container rounded-lg shadow-2xl p-8 hidden text-center">
+        <h2 class="text-2xl title-font text-yellow-200">Código da Sala:</h2>
+        <p id="room-code-display" class="text-5xl font-bold tracking-widest my-4 bg-gray-900/50 p-4 rounded-lg"></p>
+        <p class="text-yellow-100">Partilhe este código com os seus amigos.</p>
+        <div class="divider"></div>
+        <h3 id="lobby-party-status" class="text-xl title-font text-yellow-200">Comitiva Formada:</h3>
+        <div id="lobby-players-list" class="my-4 text-left space-y-2"></div>
+        <p id="lobby-waiting-message" class="text-gray-400 italic"></p>
+    </div>
+
+    <div id="game-container" class="w-full max-w-5xl container rounded-lg shadow-2xl p-8 hidden">
+        <button id="exit-session-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white" title="Sair da Sessão">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+        </button>
+        <div class="flex flex-col lg:flex-row gap-8">
+            <div class="flex-grow">
+                <div id="image-container" class="w-full h-64 bg-gray-900/50 rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-gray-700">
+                    <p class="text-yellow-200 title-font">A sua aventura começará em breve...</p>
+                </div>
+                <div class="relative">
+                    <button id="narrate-btn" class="absolute top-0 right-0 p-2 rounded-full text-yellow-400 hover:text-yellow-200" title="Narrar texto">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.964 15.964a2 2 0 01-2.828 0l-1.13-1.13a2 2 0 00-2.828 0L7.05 17.05a2 2 0 01-2.828 0L2.828 15.657a2 2 0 010-2.828l1.414-1.414a2 2 0 000-2.828L2.828 7.172a2 2 0 010-2.828l1.414-1.414a2 2 0 012.828 0L9.12 4.98a2 2 0 002.828 0l1.13-1.13a2 2 0 012.828 0l1.414 1.414a2 2 0 010 2.828l-1.414 1.414a2 2 0 000 2.828l1.414 1.414a2 2 0 010 2.828l-1.414 1.414z" /></svg>
+                    </button>
+                    <div id="story-area" class="mb-4 min-h-[150px] pr-10">
+                        <p id="story-text" class="text-xl story-text text-gray-300 leading-relaxed"></p>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div id="action-area">
+                    <div id="suggestions-area" class="mb-4">
+                        <label class="block text-sm font-medium text-yellow-100 mb-2">Sugestões da IA:</label>
+                        <div id="suggestions-chips" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <label for="action-input" class="block text-sm font-medium text-yellow-100 mb-2">O que você faz?</label>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <input type="text" id="action-input" class="flex-grow bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400" placeholder="Descreva sua ação aqui...">
+                        <input type="number" id="dice-roll-input" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white w-full sm:w-28 text-center" placeholder="d20" min="1" max="20">
+                        <button id="perform-action-btn" class="action-button font-bold py-2 px-6 rounded-lg w-full sm:w-auto">Agir!</button>
+                    </div>
+                    <p id="action-error-message" class="text-red-400 text-center mt-2 h-5"></p>
+                    <p class="text-xs text-gray-500 text-center mt-2">O progresso é guardado automaticamente após cada ação.</p>
+                </div>
+            </div>
+            <div class="w-full lg:w-80 flex-shrink-0">
+                <h2 class="title-font text-2xl text-yellow-200 mb-4">Comitiva</h2>
+                <div id="characters-display" class="space-y-4 mb-6"></div>
+                <div class="divider"></div>
+                <h2 class="title-font text-2xl text-yellow-200 mb-4">Inventário</h2>
+                <div id="inventory-display" class="space-y-2 mb-6"></div>
+                <div class="divider"></div>
+                <h2 class="title-font text-2xl text-yellow-200 mb-4">Mapa do Mundo</h2>
+                <div id="map-container">
+                    <div id="fog-of-war"></div>
+                    <div id="map-markers"></div>
+                    <div id="map-tooltip" class="hidden absolute bg-black text-white text-xs rounded py-1 px-2 pointer-events-none z-10"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-80 flex-col items-center justify-center z-50 hidden">
+        <div class="spinner mb-4"></div>
+        <p id="loading-text" class="text-xl text-yellow-200 title-font"></p>
+    </div>
+    
+    <audio id="bg-music" loop>
+        <source src="https://www.chosic.com/wp-content/uploads/2021/05/The-Vikings.mp3" type="audio/mpeg">
+    </audio>
+
+    <script type="module">
+        // Import Firebase modules from the CDN
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        
+        // Initialize Firebase services
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- App Configuration ---
+        // Get the app ID from the environment to construct the correct Firestore path.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const collectionPath = `artifacts/${appId}/public/data/rpg_sessions`;
+
+        // --- Global State Variables ---
+        let gameState = {};
+        let currentUser = null;
+        let currentRoomCode = null;
+        let unsubscribeFromRoom = null; // Function to stop listening to room updates
+
+        // --- DOM Element References ---
+        const allContainers = document.querySelectorAll('.container');
+        const entryContainer = document.getElementById('entry-container');
+        const soloPlayBtn = document.getElementById('solo-play-btn');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        const authStatus = document.getElementById('auth-status');
+        const joinRoomContainer = document.getElementById('join-room-container');
+        const roomCodeInput = document.getElementById('room-code-input');
+        const confirmJoinBtn = document.getElementById('confirm-join-btn');
+        const joinErrorMessage = document.getElementById('join-error-message');
+        const backToEntryBtn = document.getElementById('back-to-entry-btn');
+        const lobbyContainer = document.getElementById('lobby-container');
+        const roomCodeDisplay = document.getElementById('room-code-display');
+        const lobbyPlayersList = document.getElementById('lobby-players-list');
+        const lobbyWaitingMessage = document.getElementById('lobby-waiting-message');
+        const lobbyPartyStatus = document.getElementById('lobby-party-status');
+        const setupContainer = document.getElementById('setup-container');
+        const setupTitle = document.getElementById('setup-title');
+        const playerLimitLabel = document.getElementById('player-limit-label');
+        const playerLimitSelect = document.getElementById('player-limit');
+        const confirmSetupBtn = document.getElementById('confirm-setup-btn');
+        const setupBackBtn = document.getElementById('setup-back-btn');
+        const characterCreationContainer = document.getElementById('character-creation-container');
+        const characterCreationTitle = document.getElementById('character-creation-title');
+        const playerNameInput = document.getElementById('player-name-input');
+        const playerClassSelect = document.getElementById('player-class-select');
+        const playerBackstoryTextarea = document.getElementById('player-backstory-textarea');
+        const creationErrorMessage = document.getElementById('creation-error-message');
+        const confirmCharacterBtn = document.getElementById('confirm-character-btn');
+        const gameContainer = document.getElementById('game-container');
+        const exitSessionBtn = document.getElementById('exit-session-btn');
+        const themeInput = document.getElementById('theme-input');
+        const generateClassesBtn = document.getElementById('generate-classes-btn');
+        const errorMessage = document.getElementById('error-message');
+        const storyTextElement = document.getElementById('story-text');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const suggestionsChips = document.getElementById('suggestions-chips');
+        const actionInput = document.getElementById('action-input');
+        const diceRollInput = document.getElementById('dice-roll-input');
+        const performActionButton = document.getElementById('perform-action-btn');
+        const actionErrorMessage = document.getElementById('action-error-message');
+        const narrateBtn = document.getElementById('narrate-btn');
+        const imageContainer = document.getElementById('image-container');
+        const loadingText = document.getElementById('loading-text');
+        const charactersDisplay = document.getElementById('characters-display');
+        const inventoryDisplay = document.getElementById('inventory-display');
+        const bgMusic = document.getElementById('bg-music');
+        const mapContainer = document.getElementById('map-container');
+        const mapMarkersContainer = document.getElementById('map-markers');
+        const fogOfWar = document.getElementById('fog-of-war');
+        const mapTooltip = document.getElementById('map-tooltip');
+
+        // --- Constants ---
+        const loadingPhrases = ["Os bardos compõem a vossa canção...", "O destino vira as suas cartas...", "As estrelas alinham-se para a vossa jornada...", "Os ventos da magia sussurram o vosso nome...", "A forja do destino aquece...", "Antigas profecias desenrolam-se..."];
+        const STORY_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=`;
+        const IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=`;
+
+        // --- UI Management ---
+        function showScreen(screen) {
+            allContainers.forEach(c => c.classList.add('hidden'));
+            screen.classList.remove('hidden');
+        }
+
+        // --- Text-to-Speech Narration ---
+        let voices = [];
+        function populateVoiceList() { if (typeof speechSynthesis !== 'undefined') { voices = speechSynthesis.getVoices(); } }
+        populateVoiceList();
+        if (typeof speechSynthesis !== 'undefined') { speechSynthesis.onvoiceschanged = populateVoiceList; }
+
+        function toggleNarration() {
+            const isSpeaking = speechSynthesis.speaking;
+            speechSynthesis.cancel();
+            if (isSpeaking) { narrateBtn.classList.remove('speaking'); return; }
+            const text = storyTextElement.innerText;
+            if (!text) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            const ptVoice = voices.find(voice => voice.lang.startsWith('pt'));
+            if (ptVoice) utterance.voice = ptVoice;
+            utterance.rate = 1; utterance.pitch = 1;
+            utterance.onstart = () => narrateBtn.classList.add('speaking');
+            utterance.onend = () => narrateBtn.classList.remove('speaking');
+            utterance.onerror = () => narrateBtn.classList.remove('speaking');
+            speechSynthesis.speak(utterance);
+        }
+        narrateBtn.addEventListener('click', toggleNarration);
+
+        // --- Sound Effects ---
+        function playSound(type) {
+            Tone.start();
+            const synth = new Tone.Synth().toDestination();
+            if (type === 'success') {
+                synth.triggerAttackRelease("C4", "8n", Tone.now());
+                synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.2);
+            } else if (type === 'failure') {
+                synth.triggerAttackRelease("F#2", "8n");
+            }
+        }
+
+        // --- AI Image Generation ---
+        async function generateImage(prompt) {
+            imageContainer.innerHTML = `<div class="spinner"></div>`;
+            try {
+                const response = await fetch(IMAGE_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instances: [{ prompt: `fantasy art, ${prompt}` }], parameters: { "sampleCount": 1 } }) });
+                if (!response.ok) throw new Error('Image generation failed');
+                const result = await response.json();
+                if (result.predictions && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    imageContainer.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover" alt="Cena da aventura gerada por IA">`;
+                }
+            } catch (error) { console.error("Erro ao gerar imagem:", error); imageContainer.innerHTML = `<p class="text-gray-500">Não foi possível gerar a imagem da cena.</p>`; }
+        }
+
+        // --- AI Story Generation ---
+        async function generateStoryNode(action, diceRoll) {
+            const randomIndex = Math.floor(Math.random() * loadingPhrases.length);
+            loadingText.textContent = loadingPhrases[randomIndex];
+            loadingOverlay.style.display = 'flex';
+            speechSynthesis.cancel();
+            
+            if (diceRoll) { // Only play sound if it's a player action
+                if (diceRoll >= 11) playSound('success'); else playSound('failure');
+            }
+
+            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, HP: ${c.hp}/${c.maxHp}, História: ${c.backstory})`).join('; ');
+            const systemPrompt = `
+                Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
+                O inventário contém: ${gameState.inventory.join(', ') || 'nada'}.
+                Resumo da história: ${gameState.storySummary}.
+                A posição atual no mapa (x,y em percentagem) é (${gameState.map.currentPosition.x}%, ${gameState.map.currentPosition.y}%).
+
+                O jogador realizou uma ação com um resultado de d20. Narre o resultado.
+                - 1: Falha Crítica.
+                - 2-10: Falha.
+                - 11-19: Sucesso.
+                - 20: Sucesso Crítico.
+
+                Sua resposta DEVE ser um objeto JSON válido.
+                A estrutura deve ser:
+                {
+                  "text": "Narração vívida do resultado da ação.",
+                  "image_prompt": "Um prompt curto, em inglês, para gerar uma imagem da cena.",
+                  "choices": [ { "text": "Sugestão de ação." }],
+                  "found_items": ["Item 1"],
+                  "health_changes": [{"character_name": "NomeDoHeroi", "change": -3}],
+                  "map_update": {"x": 55, "y": 52, "location_name": "A Floresta Sombria", "icon": "🌳"},
+                  "story_summary": "Um resumo atualizado dos eventos chave."
+                }
+                As coordenadas do mapa (x, y) devem ser em percentagem (0-100). Seja criativo. A história é em português do Brasil.
+            `;
+
+            const userQuery = `Ação do jogador: "${action}". Rolagem de d20: ${diceRoll}. Gere a narração e todos os outros campos do JSON.`;
+
+            try {
+                const response = await fetch(STORY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }) });
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const result = await response.json();
+                let jsonText = result.candidates[0].content.parts[0].text.replace(/^```json\s*/, '').replace(/```$/, '');
+                const updateData = JSON.parse(jsonText);
+                
+                const roomRef = doc(db, collectionPath, currentRoomCode);
+                
+                // Create a mutable copy of the game state to apply updates
+                const newGameState = JSON.parse(JSON.stringify(gameState));
+                
+                if (updateData.found_items) { newGameState.inventory.push(...updateData.found_items); }
+                if (updateData.health_changes) {
+                    updateData.health_changes.forEach(change => {
+                        const char = newGameState.characters.find(c => c.name === change.character_name);
+                        if (char) { char.hp = Math.max(0, Math.min(char.maxHp, char.hp + change.change)); }
+                    });
+                }
+                if (updateData.map_update) {
+                    newGameState.map.currentPosition = { x: updateData.map_update.x, y: updateData.map_update.y };
+                    const existingLocation = newGameState.map.locations.find(loc => loc.x === updateData.map_update.x && loc.y === updateData.map_update.y);
+                    if (!existingLocation) {
+                        newGameState.map.locations.push({ ...updateData.map_update });
+                    }
+                }
+                newGameState.storySummary = updateData.story_summary || newGameState.storySummary;
+                newGameState.lastUpdate = updateData;
+                newGameState.activeCharacterIndex = (newGameState.activeCharacterIndex + 1) % newGameState.characters.length;
+                
+                // Update the document in Firestore
+                await updateDoc(roomRef, newGameState);
+
+            } catch (error) {
+                console.error("Erro ao gerar história:", error);
+                storyTextElement.innerText = "Oh, não! Os ventos da magia parecem instáveis. O Mestre de Jogo tropeçou. Tente novamente ou recomece.";
+                suggestionsChips.innerHTML = `<button onclick="window.location.reload()" class="w-full action-button font-bold py-3 px-4 rounded-lg">Recomeçar do Zero</button>`;
+            } finally { loadingOverlay.style.display = 'none'; }
+        }
+        
+        // --- Game State Rendering ---
+        function renderInventory() {
+            inventoryDisplay.innerHTML = '';
+            if (!gameState.inventory || gameState.inventory.length === 0) {
+                inventoryDisplay.innerHTML = `<p class="text-gray-500 italic">A bolsa está vazia.</p>`;
+            } else {
+                gameState.inventory.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'inventory-item text-gray-300 p-2 rounded';
+                    itemEl.textContent = item;
+                    inventoryDisplay.appendChild(itemEl);
+                });
+            }
+        }
+
+        function renderCharacters() {
+            charactersDisplay.innerHTML = '';
+            if (!gameState.characters) return;
+            gameState.characters.forEach((char, index) => {
+                const charEl = document.createElement('div');
+                let classList = 'p-2 rounded character-card';
+                if (char.hp === 0) classList += ' downed';
+                if (index === gameState.activeCharacterIndex) classList += ' active-turn';
+                charEl.className = classList;
+
+                const healthPercentage = (char.hp / char.maxHp) * 100;
+                charEl.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <p class="font-bold text-lg text-yellow-100">${char.name}</p>
+                        <p class="text-sm text-gray-300">${char.hp} / ${char.maxHp}</p>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-1">${char.class}</p>
+                    <div class="health-bar-background w-full h-2">
+                        <div class="health-bar-foreground" style="width: ${healthPercentage}%;"></div>
+                    </div>
+                `;
+                charactersDisplay.appendChild(charEl);
+            });
+        }
+
+        function renderMap() {
+            if (!gameState.map) return;
+            mapMarkersContainer.innerHTML = '';
+            
+            // Render discovered locations
+            gameState.map.locations.forEach(loc => {
+                const marker = document.createElement('div');
+                marker.className = 'map-marker';
+                marker.style.left = `${loc.x}%`;
+                marker.style.top = `${loc.y}%`;
+                marker.textContent = loc.icon || '📍';
+                marker.title = loc.location_name;
+                mapMarkersContainer.appendChild(marker);
+            });
+
+            // Render player position
+            const playerMarker = document.createElement('div');
+            playerMarker.className = 'map-marker player-marker';
+            playerMarker.style.left = `${gameState.map.currentPosition.x}%`;
+            playerMarker.style.top = `${gameState.map.currentPosition.y}%`;
+            playerMarker.textContent = '⚔️';
+            playerMarker.title = 'Sua Posição';
+            mapMarkersContainer.appendChild(playerMarker);
+
+            // Update fog of war
+            fogOfWar.style.maskPosition = `${gameState.map.currentPosition.x}% ${gameState.map.currentPosition.y}%`;
+            fogOfWar.style.webkitMaskPosition = `${gameState.map.currentPosition.x}% ${gameState.map.currentPosition.y}%`;
+        }
+        
+        function renderScene(sceneData) {
+            storyTextElement.innerText = '';
+            suggestionsChips.innerHTML = '';
+            actionInput.value = '';
+            diceRollInput.value = '';
+            
+            // Typewriter effect for story text
+            let charIndex = 0;
+            function typeWriter() { if (charIndex < sceneData.text.length) { storyTextElement.innerText += sceneData.text.charAt(charIndex++); setTimeout(typeWriter, 20); } }
+            typeWriter();
+
+            // Render suggestion chips
+            sceneData.choices.forEach(choice => {
+                const chip = document.createElement('div');
+                chip.innerText = choice.text;
+                chip.className = 'suggestion-chip text-sky-100 text-sm py-1 px-3 rounded-full';
+                chip.onclick = () => { actionInput.value = choice.text; };
+                suggestionsChips.appendChild(chip);
+            });
+
+            renderInventory();
+            renderCharacters();
+            renderMap();
+        }
+
+        // --- Main Game Loop / UI Updater ---
+        function updateUIWithGameState(data) {
+            // Safety check: if room data is gone, reload the app
+            if (!data) {
+                if(unsubscribeFromRoom) unsubscribeFromRoom();
+                alert("A sala de jogo já não existe. A regressar ao menu principal.");
+                window.location.reload();
+                return;
+            }
+
+            gameState = data;
+            
+            if (data.status === 'playing') {
+                showScreen(gameContainer);
+                
+                if (data.lastUpdate) {
+                     // Generate image only once per scene update
+                    if (data.lastUpdate.image_prompt && (imageContainer.innerHTML.includes('spinner') || imageContainer.innerHTML.includes('começará em breve'))) {
+                        generateImage(data.lastUpdate.image_prompt);
+                    }
+                    renderScene(data.lastUpdate);
+                }
+                
+                // Determine whose turn it is and enable/disable controls
+                const activeCharacter = gameState.characters[gameState.activeCharacterIndex];
+                const isMyTurn = gameState.isSolo || (activeCharacter && activeCharacter.playerId === currentUser.uid);
+                performActionButton.disabled = !isMyTurn;
+                actionInput.disabled = !isMyTurn;
+                diceRollInput.disabled = !isMyTurn;
+                actionInput.placeholder = isMyTurn ? "É a sua vez de agir!" : `Aguardando a vez de ${activeCharacter?.name}...`;
+
+            } else if (data.status === 'lobby' || data.status === 'setup' || data.status === 'solo_character_creation') {
+                const myCharacter = data.characters.find(c => c.playerId === currentUser.uid);
+
+                if (data.isSolo && data.status === 'solo_character_creation') {
+                    showScreen(characterCreationContainer);
+                    characterCreationTitle.textContent = `Crie o Herói ${data.characters.length + 1} de ${data.playerLimit}`;
+                    confirmCharacterBtn.textContent = (data.characters.length + 1 >= data.playerLimit) ? 'Confirmar e Iniciar Aventura' : 'Confirmar Próximo Herói';
+                    playerClassSelect.innerHTML = '';
+                    if(data.generatedClasses && data.generatedClasses.length > 0) {
+                        data.generatedClasses.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.textContent = cls;
+                            playerClassSelect.appendChild(option);
+                        });
+                    }
+                    playerNameInput.value = '';
+                    playerBackstoryTextarea.value = '';
+                }
+                else if (!myCharacter && !data.isSolo) {
+                    showScreen(characterCreationContainer);
+                    characterCreationTitle.textContent = `Crie o seu Herói`;
+                    playerClassSelect.innerHTML = '';
+                    if(data.generatedClasses && data.generatedClasses.length > 0) {
+                        data.generatedClasses.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.textContent = cls;
+                            playerClassSelect.appendChild(option);
+                        });
+                    } else {
+                        playerClassSelect.innerHTML = `<option>Aguardando classes...</option>`;
+                    }
+                } else {
+                    showScreen(lobbyContainer);
+                    roomCodeDisplay.textContent = currentRoomCode;
+                    lobbyPartyStatus.textContent = `Comitiva Formada: ${data.characters.length} / ${data.playerLimit}`;
+                    lobbyPlayersList.innerHTML = '';
+                    if (data.characters) {
+                        data.characters.forEach(char => {
+                            if (char.playerId) {
+                                const p = document.createElement('div');
+                                p.className = 'inventory-item p-2';
+                                p.innerHTML = `<p class="font-bold">${char.name} <span class="text-gray-400 font-normal">- ${char.class}</span></p>`;
+                                lobbyPlayersList.appendChild(p);
+                            }
+                        });
+                    }
+                    if (currentUser.uid === data.hostId) {
+                        lobbyWaitingMessage.innerHTML = `<button id="force-start-btn" class="mt-4 action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Iniciar Aventura</button>`;
+                        document.getElementById('force-start-btn').onclick = async () => {
+                            if (gameState.characters.length < gameState.playerLimit) {
+                                alert('Aguarde que todos os jogadores criem os seus personagens.');
+                                return;
+                            }
+                            const roomRef = doc(db, collectionPath, currentRoomCode);
+                            await updateDoc(roomRef, { status: 'playing' });
+                            // The first story node is generated when the game starts
+                            await generateStoryNode("A aventura começa.", null);
+                        };
+                    } else {
+                        lobbyWaitingMessage.textContent = 'Aguardando o Mestre iniciar a aventura...';
+                    }
+                }
+            }
+        }
+
+        // --- Room Management ---
+        async function joinRoom(roomCode) {
+            const roomRef = doc(db, collectionPath, roomCode);
+            const roomSnap = await getDoc(roomRef);
+
+            if (!roomSnap.exists()) {
+                joinErrorMessage.textContent = 'Sala não encontrada.';
+                return;
+            }
+            
+            const roomData = roomSnap.data();
+            const isPlayerInRoom = roomData.characters.some(c => c.playerId === currentUser.uid);
+            if (roomData.characters.length >= roomData.playerLimit && !isPlayerInRoom) {
+                joinErrorMessage.textContent = 'Esta sala já está cheia.';
+                return;
+            }
+
+            currentRoomCode = roomCode;
+            if (unsubscribeFromRoom) unsubscribeFromRoom();
+            unsubscribeFromRoom = onSnapshot(roomRef, (doc) => {
+                updateUIWithGameState(doc.data());
+            });
+        }
+        
+        async function createNewRoom(isSolo = false) {
+            try {
+                await authReady; // Wait for authentication to complete
+                const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const roomRef = doc(db, collectionPath, roomCode);
+                
+                currentRoomCode = roomCode;
+                
+                const initialGameState = {
+                    hostId: currentUser.uid,
+                    status: 'setup',
+                    isSolo: isSolo,
+                    players: {},
+                    characters: [],
+                    theme: '',
+                    generatedClasses: [],
+                    inventory: [],
+                    storySummary: 'A aventura está prestes a começar.',
+                    map: { locations: [], currentPosition: {x: 50, y: 50} },
+                    activeCharacterIndex: 0,
+                    lastUpdate: null,
+                    playerLimit: isSolo ? 1 : 3
+                };
+                await setDoc(roomRef, initialGameState);
+                
+                if (unsubscribeFromRoom) unsubscribeFromRoom();
+                unsubscribeFromRoom = onSnapshot(roomRef, (doc) => {
+                    const data = doc.data();
+                    if(!data) return; 
+
+                    if (data.status === 'setup') {
+                        gameState = data;
+                        showScreen(setupContainer);
+                        setupTitle.textContent = isSolo ? 'Crie a sua Aventura a Solo' : 'Criar Aventura Multijogador';
+                        playerLimitLabel.textContent = isSolo ? 'Tamanho da Comitiva:' : 'Limite de jogadores:';
+                        if(isSolo) {
+                           playerLimitSelect.innerHTML = `<option value="1">1 Herói</option><option value="2">2 Heróis</option><option value="3">3 Heróis</option><option value="4">4 Heróis</option>`;
+                        } else {
+                           playerLimitSelect.innerHTML = `<option value="2">2 Jogadores</option><option value="3" selected>3 Jogadores</option><option value="4">4 Jogadores</option><option value="5">5 Jogadores</option><option value="6">6 Jogadores</option><option value="7">7 Jogadores</option><option value="8">8 Jogadores</option>`;
+                        }
+                    } else {
+                        updateUIWithGameState(data);
+                    }
+                });
+            } catch (error) {
+               console.error("Erro ao criar sala:", error);
+               authStatus.innerHTML = `Erro de permissão. <br>Verifique as regras do Firestore na sua consola Firebase.`;
+               authStatus.style.display = 'block';
+            }
+        }
+
+        // --- Event Listeners ---
+        createRoomBtn.addEventListener('click', () => createNewRoom(false));
+        soloPlayBtn.addEventListener('click', () => createNewRoom(true));
+        joinRoomBtn.addEventListener('click', () => showScreen(joinRoomContainer));
+        confirmJoinBtn.addEventListener('click', () => {
+            const code = roomCodeInput.value.trim().toUpperCase();
+            if (code.length === 6) { joinRoom(code); } 
+            else { joinErrorMessage.textContent = 'O código deve ter 6 caracteres.'; }
+        });
+        backToEntryBtn.addEventListener('click', () => {
+            showScreen(entryContainer);
+            joinErrorMessage.textContent = '';
+        });
+
+        setupBackBtn.addEventListener('click', () => {
+            if (unsubscribeFromRoom) {
+                unsubscribeFromRoom();
+                unsubscribeFromRoom = null;
+            }
+            currentRoomCode = null;
+            showScreen(entryContainer);
+            errorMessage.textContent = '';
+        });
+
+        generateClassesBtn.addEventListener('click', async () => {
+            const theme = themeInput.value.trim();
+            if (!theme) { errorMessage.textContent = 'Por favor, insira um tema primeiro.'; return; }
+            errorMessage.textContent = '';
+            generateClassesBtn.textContent = 'Gerando...';
+            generateClassesBtn.disabled = true;
+            const systemPrompt = `Você é um criador de mundos de RPG. Baseado no tema fornecido, gere uma lista de 4 classes de personagens que se encaixem perfeitamente nesse universo. Responda APENAS com um objeto JSON válido com a seguinte estrutura: {"classes": ["Classe 1", "Classe 2", "Classe 3", "Classe 4"]}.`;
+            const userQuery = `O tema é: "${theme}".`;
+            try {
+                const response = await fetch(STORY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }) });
+                if (!response.ok) throw new Error('API Error');
+                const result = await response.json();
+                let jsonText = result.candidates[0].content.parts[0].text.replace(/^```json\s*/, '').replace(/```$/, '');
+                const data = JSON.parse(jsonText);
+                
+                const roomRef = doc(db, collectionPath, currentRoomCode);
+                await updateDoc(roomRef, { generatedClasses: data.classes });
+
+            } catch (error) { console.error("Erro ao gerar classes:", error); errorMessage.textContent = 'Não foi possível gerar as classes. Tente outro tema.';
+            } finally { generateClassesBtn.textContent = 'Gerar Classes'; generateClassesBtn.disabled = false; }
+        });
+
+        confirmSetupBtn.addEventListener('click', async () => {
+            const themeValue = themeInput.value.trim();
+            const playerLimit = parseInt(playerLimitSelect.value, 10);
+            if (!themeValue || !gameState.generatedClasses || gameState.generatedClasses.length === 0) {
+                errorMessage.textContent = 'Por favor, insira um tema e gere as classes.';
+                return;
+            }
+            errorMessage.textContent = '';
+            const roomRef = doc(db, collectionPath, currentRoomCode);
+            
+            const nextStatus = gameState.isSolo ? 'solo_character_creation' : 'lobby';
+            await updateDoc(roomRef, {
+                theme: themeValue,
+                playerLimit: playerLimit,
+                status: nextStatus
+            });
+        });
+        
+        confirmCharacterBtn.addEventListener('click', async () => {
+            const name = playerNameInput.value.trim();
+            const backstory = playerBackstoryTextarea.value.trim();
+            const selectedClass = playerClassSelect.value;
+            if (!name || !backstory) {
+                creationErrorMessage.textContent = 'Por favor, preencha todos os campos.';
+                return;
+            }
+            creationErrorMessage.textContent = '';
+
+            const newCharacter = { 
+                name, 
+                class: selectedClass,
+                backstory,
+                hp: 10, maxHp: 10, 
+                playerId: currentUser.uid
+            };
+
+            const roomRef = doc(db, collectionPath, currentRoomCode);
+            
+            if (gameState.isSolo && gameState.characters.length + 1 >= gameState.playerLimit) {
+                 await updateDoc(roomRef, {
+                    characters: arrayUnion(newCharacter),
+                    [`players.${currentUser.uid}`]: 'Jogador Solo',
+                    status: 'playing'
+                });
+                await generateStoryNode("A aventura começa.", null);
+            } else {
+                 await updateDoc(roomRef, {
+                    characters: arrayUnion(newCharacter),
+                    [`players.${currentUser.uid}`]: name
+                });
+            }
+        });
+        
+        performActionButton.addEventListener('click', () => {
+            const action = actionInput.value.trim();
+            const roll = parseInt(diceRollInput.value, 10);
+            if (!action || !roll || roll < 1 || roll > 20) {
+                actionErrorMessage.textContent = 'Descreva sua ação e insira uma rolagem de d20 válida (1-20).';
+                return;
+            }
+            actionErrorMessage.textContent = '';
+            generateStoryNode(action, roll);
+        });
+        
+        exitSessionBtn.addEventListener('click', () => {
+            if (unsubscribeFromRoom) {
+                unsubscribeFromRoom();
+                unsubscribeFromRoom = null;
+            }
+            window.location.reload();
+        });
+
+        // --- Authentication Handling ---
+        const authReady = new Promise((resolve, reject) => {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    authStatus.textContent = 'Ligado!';
+                    setTimeout(() => authStatus.style.display = 'none', 2000);
+                    createRoomBtn.disabled = false;
+                    joinRoomBtn.disabled = false;
+                    soloPlayBtn.disabled = false;
+                    resolve(user);
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Falha na autenticação:", error);
+                        authStatus.textContent = 'Erro de ligação. Verifique a configuração do Firebase.';
+                        reject(error);
+                    }
+                }
+            });
+        });
+
+        // --- Page Load Initialization ---
+        window.onload = () => {
+            bgMusic.volume = 0.1;
+            // Add a click listener to the document to start music on user interaction
+            document.body.addEventListener('click', () => {
+                if (bgMusic.paused) {
+                    bgMusic.play().catch(e => console.log("A reprodução da música foi bloqueada pelo navegador."));
+                }
+            }, { once: true });
+            
+            authReady.catch(err => console.error("A autenticação falhou no carregamento da página"));
+        };
+    </script>
+</body>
+</html>
