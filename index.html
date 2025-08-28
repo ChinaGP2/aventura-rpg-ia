@@ -192,12 +192,16 @@
     <script type="module">
         // Import Firebase modules from the CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // --- App Configuration ---
+        // IMPORTANTE: Para implementar no GitHub ou noutro local, substitua a string abaixo
+        // pela sua própria chave de API do Google AI Studio. Pode obtê-la em https://aistudio.google.com/app/apikey
+        const GEMINI_API_KEY = "AIzaSyDfO4GbBln20IxuTVNKWf7Z0DldNnVxuU4"; 
+
         // --- Firebase Configuration ---
-        // This configuration is now hardcoded to allow deployment on platforms like GitHub Pages.
-        // Replace these values with your own Firebase project's configuration.
+        // Esta configuração está agora fixa para permitir a implementação em plataformas como o GitHub Pages.
         const firebaseConfig = {
           apiKey: "AIzaSyBWUuPnKsxDDpGvI4tG4XaskHmxNAKorhk",
           authDomain: "ia-rpg-64b7f.firebaseapp.com",
@@ -212,7 +216,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- App Configuration ---
         const collectionRef = collection(db, "rpg_sessions");
 
         // --- Global State Variables ---
@@ -277,8 +280,8 @@
 
         // --- Constants ---
         const loadingPhrases = ["Os bardos compõem a vossa canção...", "O destino vira as suas cartas...", "As estrelas alinham-se para a vossa jornada...", "Os ventos da magia sussurram o vosso nome...", "A forja do destino aquece...", "Antigas profecias desenrolam-se..."];
-        const STORY_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=`;
-        const IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=`;
+        const STORY_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+        const IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
 
         // --- UI Management ---
         function showScreen(screen) {
@@ -323,6 +326,7 @@
 
         // --- AI Image Generation ---
         async function generateImage(prompt) {
+            if (GEMINI_API_KEY === "SUA_CHAVE_API_AQUI") return;
             imageContainer.innerHTML = `<div class="spinner"></div>`;
             try {
                 const response = await fetch(IMAGE_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instances: [{ prompt: `fantasy art, ${prompt}` }], parameters: { "sampleCount": 1 } }) });
@@ -337,6 +341,10 @@
 
         // --- AI Story Generation ---
         async function generateStoryNode(action, diceRoll) {
+            if (GEMINI_API_KEY === "SUA_CHAVE_API_AQUI") {
+                storyTextElement.innerText = "A sua chave de API do Google AI Studio não foi adicionada. Por favor, adicione-a ao ficheiro HTML para que a IA possa gerar a história.";
+                return;
+            }
             const randomIndex = Math.floor(Math.random() * loadingPhrases.length);
             loadingText.textContent = loadingPhrases[randomIndex];
             loadingOverlay.style.display = 'flex';
@@ -722,6 +730,10 @@
         });
 
         generateClassesBtn.addEventListener('click', async () => {
+            if (GEMINI_API_KEY === "SUA_CHAVE_API_AQUI") {
+                errorMessage.textContent = 'Por favor, adicione a sua chave de API da IA no código para continuar.';
+                return;
+            }
             const theme = themeInput.value.trim();
             if (!theme) { errorMessage.textContent = 'Por favor, insira um tema primeiro.'; return; }
             errorMessage.textContent = '';
