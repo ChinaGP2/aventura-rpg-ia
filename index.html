@@ -30,7 +30,7 @@
         .narrate-control:hover:not(:disabled) { background-color: rgba(253, 224, 71, 0.2); }
         #narrate-btn.speaking svg, #narrate-btn:disabled svg { color: #fef08a; animation: pulse-speak 1.5s infinite ease-in-out; }
         @keyframes pulse-speak { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
-        .inventory-item { background-color: rgba(0,0,0,0.3); border: 1px solid #a3a3a3; transition: all 0.2s ease-in-out; }
+        .inventory-item { background-color: rgba(0,0,0,0.3); border: 1px solid #a3a3a3; transition: all 0.2s ease-in-out; position: relative; }
         .inventory-item:hover { background-color: rgba(253, 224, 71, 0.1); border-color: #fef08a; }
         .health-bar-background { background-color: #4b5563; border-radius: 0.25rem; overflow: hidden; }
         .health-bar-foreground { background: linear-gradient(to right, #ef4444, #b91c1c); height: 100%; transition: width 0.5s ease-in-out; }
@@ -49,12 +49,11 @@
         #scene-ambience-container { text-shadow: 0 0 10px black; }
         input, select, textarea { box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
         input:focus, select:focus, textarea:focus { box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 0 10px rgba(253, 224, 71, 0.5); }
-        @keyframes dice-roll-effect {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            25% { transform: scale(1.2) rotate(-10deg); }
-            75% { transform: scale(1.2) rotate(10deg); }
-        }
+        @keyframes dice-roll-effect { 0%, 100% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.2) rotate(-10deg); } 75% { transform: scale(1.2) rotate(10deg); } }
         .dice-rolling { animation: dice-roll-effect 0.4s ease-in-out; }
+        .tooltip { visibility: hidden; width: 200px; background-color: #111827; color: #fff; text-align: center; border-radius: 6px; padding: 5px 0; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; border: 1px solid #fef08a; font-size: 0.8rem; line-height: 1.2; }
+        .inventory-item:hover .tooltip { visibility: visible; opacity: 1; }
+        .journal-entry { border-left: 2px solid #fef08a; padding-left: 10px; margin-bottom: 8px; font-size: 0.9rem; color: #d1d5db; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
@@ -126,12 +125,33 @@
     <div id="character-creation-container" class="w-full max-w-2xl container-screen rounded-lg shadow-2xl p-8 hidden">
         <h1 id="character-creation-title" class="text-4xl title-font text-yellow-200 text-center mb-6">Crie o seu Herói</h1>
         <div class="p-4 border border-yellow-200/20 rounded-lg space-y-4">
-            <div class="flex flex-col sm:flex-row gap-4 items-center">
-                <input type="text" id="player-name-input" placeholder="Nome do Herói" class="w-full sm:flex-grow bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
-                <select id="player-class-select" class="w-full sm:w-48 bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
-                </select>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input type="text" id="player-name-input" placeholder="Nome do Herói" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
+                <select id="player-class-select" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400"></select>
             </div>
-            <textarea id="player-backstory-textarea" placeholder="Uma breve história do herói..." class="w-full mt-2 bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-sm focus:ring-yellow-400 focus:border-yellow-400" rows="3"></textarea>
+            <textarea id="player-backstory-textarea" placeholder="Uma breve história do herói..." class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-sm focus:ring-yellow-400 focus:border-yellow-400" rows="3"></textarea>
+            <div class="divider"></div>
+            <div>
+                 <p class="text-yellow-100 mb-2">Distribua os seus Pontos de Atributo (<span id="attribute-points-left">4</span> restantes):</p>
+                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <label for="attr-forca" class="block text-sm font-medium">Força</label>
+                        <input type="number" id="attr-forca" class="attribute-input w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-center" value="0" min="0" max="10">
+                    </div>
+                    <div>
+                        <label for="attr-destreza" class="block text-sm font-medium">Destreza</label>
+                        <input type="number" id="attr-destreza" class="attribute-input w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-center" value="0" min="0" max="10">
+                    </div>
+                    <div>
+                        <label for="attr-inteligencia" class="block text-sm font-medium">Inteligência</label>
+                        <input type="number" id="attr-inteligencia" class="attribute-input w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-center" value="0" min="0" max="10">
+                    </div>
+                    <div>
+                        <label for="attr-carisma" class="block text-sm font-medium">Carisma</label>
+                        <input type="number" id="attr-carisma" class="attribute-input w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-center" value="0" min="0" max="10">
+                    </div>
+                 </div>
+            </div>
         </div>
         <p id="creation-error-message" class="text-red-400 text-center my-4 h-5"></p>
         <div class="mt-6 flex flex-col sm:flex-row gap-4">
@@ -152,7 +172,7 @@
         </div>
     </div>
 
-    <div id="game-container" class="w-full max-w-5xl container-screen rounded-lg shadow-2xl p-8 hidden">
+    <div id="game-container" class="w-full max-w-7xl container-screen rounded-lg shadow-2xl p-8 hidden">
         <button id="exit-session-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white" title="Sair da Sessão">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -186,8 +206,14 @@
                     <label for="action-input" class="block text-sm font-medium text-yellow-100 mb-2">O que você faz?</label>
                     <div class="flex flex-col sm:flex-row gap-2 items-center">
                         <input type="text" id="action-input" class="flex-grow bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400" placeholder="Descreva sua ação aqui...">
+                        <select id="attribute-select" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400 w-full sm:w-auto">
+                           <option value="forca">Força</option>
+                           <option value="destreza">Destreza</option>
+                           <option value="inteligencia">Inteligência</option>
+                           <option value="carisma">Carisma</option>
+                        </select>
                         <div class="flex gap-2 w-full sm:w-auto">
-                           <input type="number" id="dice-roll-input" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white w-full text-center" placeholder="d20" min="1" max="20">
+                           <input type="number" id="dice-roll-input" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white w-24 text-center" placeholder="d20" min="1" max="20">
                            <button id="roll-dice-btn" class="secondary-button p-2 rounded-lg" title="Lançar um d20">
                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l-8 4.5v9l8 4.5 8-4.5v-9l-8-4.5z"></path><path d="M12 2.5v20"></path><path d="M4 7l8 4.5 8-4.5"></path><path d="M4 16l8-4.5 8 4.5"></path></svg>
                            </button>
@@ -198,18 +224,23 @@
                     <p class="text-xs text-gray-500 text-center mt-2">O progresso é guardado automaticamente após cada ação.</p>
                 </div>
             </div>
-            <div class="w-full lg:w-80 flex-shrink-0">
-                <h2 class="title-font text-2xl text-yellow-200 mb-4">Comitiva</h2>
-                <div id="characters-display" class="space-y-4 mb-6"></div>
-                <div class="divider"></div>
-                <h2 class="title-font text-2xl text-yellow-200 mb-4">O Seu Inventário</h2>
-                <div id="inventory-display" class="space-y-2 mb-6"></div>
-                <div class="divider"></div>
-                <h2 class="title-font text-2xl text-yellow-200 mb-4">Mapa do Mundo</h2>
-                <div id="map-container">
-                    <div id="fog-of-war"></div>
-                    <div id="map-markers"></div>
-                    <div id="map-tooltip" class="hidden absolute bg-black text-white text-xs rounded py-1 px-2 pointer-events-none z-10"></div>
+            <div class="w-full lg:w-96 flex-shrink-0 flex flex-col lg:max-h-[calc(100vh-4rem)]">
+                <div class="overflow-y-auto pr-2">
+                    <h2 class="title-font text-2xl text-yellow-200 mb-4">Comitiva</h2>
+                    <div id="characters-display" class="space-y-4 mb-6"></div>
+                    <div class="divider"></div>
+                    <h2 class="title-font text-2xl text-yellow-200 mb-4">O Seu Inventário</h2>
+                    <div id="inventory-display" class="space-y-2 mb-6 relative"></div>
+                    <div class="divider"></div>
+                    <h2 class="title-font text-2xl text-yellow-200 mb-4">Mapa do Mundo</h2>
+                    <div id="map-container" class="mb-6">
+                        <div id="fog-of-war"></div>
+                        <div id="map-markers"></div>
+                        <div id="map-tooltip" class="hidden absolute bg-black text-white text-xs rounded py-1 px-2 pointer-events-none z-10"></div>
+                    </div>
+                    <div class="divider"></div>
+                    <h2 class="title-font text-2xl text-yellow-200 mb-4">Diário da Aventura</h2>
+                    <div id="journal-display" class="space-y-2"></div>
                 </div>
             </div>
         </div>
@@ -268,6 +299,7 @@
         let unsubscribeFromSessions = null;
         let isAINarrating = false;
         let currentVoice = 'Kore'; // 'Kore' = Feminina, 'Charon' = Masculina
+        const TOTAL_ATTRIBUTE_POINTS = 4;
 
         // --- DOM Element References ---
         const allScreens = document.querySelectorAll('.container-screen');
@@ -310,6 +342,7 @@
         const loadingOverlay = document.getElementById('loading-overlay');
         const suggestionsChips = document.getElementById('suggestions-chips');
         const actionInput = document.getElementById('action-input');
+        const attributeSelect = document.getElementById('attribute-select');
         const diceRollInput = document.getElementById('dice-roll-input');
         const rollDiceBtn = document.getElementById('roll-dice-btn');
         const performActionButton = document.getElementById('perform-action-btn');
@@ -322,6 +355,7 @@
         const loadingText = document.getElementById('loading-text');
         const charactersDisplay = document.getElementById('characters-display');
         const inventoryDisplay = document.getElementById('inventory-display');
+        const journalDisplay = document.getElementById('journal-display');
         const bgMusic = document.getElementById('bg-music');
         const ambienceSound = document.getElementById('ambience-sound');
         const narrationAudio = document.getElementById('narration-audio');
@@ -591,7 +625,7 @@
         }
 
         // --- AI Story Generation ---
-        async function generateStoryNode(action, diceRoll) {
+        async function generateStoryNode(action, attribute, diceRoll) {
             if (GEMINI_API_KEY === "SUA_CHAVE_API_AQUI") {
                 storyTextElement.innerText = "A sua chave de API do Google AI Studio não foi adicionada. Por favor, adicione-a ao ficheiro HTML para que a IA possa gerar a história.";
                 return;
@@ -600,47 +634,50 @@
             loadingText.textContent = loadingPhrases[randomIndex];
             loadingOverlay.style.display = 'flex';
             
-            if (diceRoll) { // Only play sound if it's a player action
-                if (diceRoll >= 11) playSound('success'); else playSound('failure');
+            const activeChar = gameState.characters[gameState.activeCharacterIndex];
+            const attributeBonus = activeChar ? (activeChar.attributes[attribute] || 0) : 0;
+            const finalRoll = (diceRoll || 0) + attributeBonus;
+            
+            if (diceRoll) {
+                if (finalRoll >= 11) playSound('success'); else playSound('failure');
             }
 
-            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, HP: ${c.hp}/${c.maxHp}, Inventário: ${c.inventory.join(', ') || 'vazio'})`).join('; ');
+            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, HP: ${c.hp}/${c.maxHp}, Inventário: ${c.inventory.map(i => i.name).join(', ') || 'vazio'})`).join('; ');
             
             let systemPrompt;
             let userQuery;
 
             const baseJsonResponse = `{
               "text": "...",
-              "narration_hint": "um tom de voz que corresponda à cena (ex: tenso, aliviado, misterioso, zangado).",
-              "soundscape_keyword": "uma única palavra-chave em inglês (ex: forest, cave, battle, tavern, city, ocean, village, dungeon) que descreva o ambiente sonoro da cena.",
+              "narration_hint": "um tom de voz (ex: tenso, aliviado, misterioso, zangado).",
+              "soundscape_keyword": "uma palavra-chave em inglês (ex: forest, cave, battle, tavern) para o som ambiente.",
               "choices": [ { "text": "Sugestão de ação." }],
-              "items_update": [{"character_name": "NomeDoHeroi", "items": ["Item 1"]}],
+              "items_update": [{"character_name": "NomeDoHeroi", "items": [{"name": "Item 1", "description": "Descrição do item."}]}],
               "health_changes": [{"character_name": "NomeDoHeroi", "change": -3}],
               "map_update": {"x": 55, "y": 52, "location_name": "A Floresta Sombria", "icon": "🌳"},
+              "journal_entry": "Um resumo de uma frase do evento para o diário.",
               "story_summary": "Um resumo atualizado dos eventos chave."
             }`;
 
             if (action === "A aventura começa.") {
                 systemPrompt = `
-                    Você é um Mestre de RPG prestes a começar uma nova aventura. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
-                    Sua tarefa é criar a cena de abertura. Descreva o cenário inicial, introduza a situação em que os heróis se encontram e dê o pontapé inicial para a jornada. A narração é feita por uma voz de IA que pode ser masculina ou feminina. Pode, ocasionalmente, dar sugestões sobre que tipo de voz usar no campo "narration_hint".
-                    Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida da cena de abertura..."').replace('"um tom de voz que corresponda à cena (ex: tenso, aliviado, misterioso, zangado)."', '"um tom de voz inspirador e épico para o início da aventura."')}
-                    Seja criativo e imersivo. A história é em português do Brasil.
+                    Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
+                    Crie a cena de abertura. Descreva o cenário, a situação inicial, e dê o pontapé inicial. A narração é feita por IA de voz (masculina ou feminina), pode sugerir um tipo de voz no "narration_hint".
+                    Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida da cena de abertura..."').replace('"um tom de voz que corresponda à cena (ex: tenso, aliviado, misterioso, zangado)."', '"um tom de voz inspirador e épico."')}
+                    A história é em português do Brasil.
                 `;
-                userQuery = `Comece a aventura com base no tema e nos personagens fornecidos.`;
+                userQuery = `Comece a aventura.`;
             } else {
                 systemPrompt = `
-                    Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
-                    Resumo da história: ${gameState.storySummary}. A narração é feita por uma voz de IA que pode ser masculina ou feminina. Pode, ocasionalmente, dar sugestões sobre que tipo de voz usar no campo "narration_hint".
-                    A posição atual no mapa (x,y em percentagem) é (${gameState.map.currentPosition.x}%, ${gameState.map.currentPosition.y}%).
-
-                    O jogador realizou uma ação com um resultado de d20. Narre o resultado.
-                    - 1: Falha Crítica. - 2-10: Falha. - 11-19: Sucesso. - 20: Sucesso Crítico.
-
-                    Sua resposta DEVE ser um objeto JSON válido. A estrutura deve ser: ${baseJsonResponse.replace('"..."', '"Narração vívida do resultado da ação."')}
-                    As coordenadas do mapa (x, y) devem ser em percentagem (0-100). Seja criativo. A história é em português do Brasil.
+                    Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}. Resumo da história: ${gameState.storySummary}.
+                    O jogador ativo é ${activeChar.name}. Ele usou o atributo ${attribute} (bónus de +${attributeBonus}).
+                    A ação do jogador foi: "${action}". O resultado do d20 foi ${diceRoll}. O resultado final (dado + bónus) é ${finalRoll}.
+                    Narre o resultado. Considere o atributo usado.
+                    - 1: Falha Crítica. - 2-10: Falha. - 11-19: Sucesso. - 20: Sucesso Crítico (d20 natural).
+                    Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida do resultado da ação."')}
+                    A história é em português do Brasil.
                 `;
-                userQuery = `Ação do jogador: "${action}". Rolagem de d20: ${diceRoll}. Gere a narração e todos os outros campos do JSON.`;
+                userQuery = `Jogador: ${activeChar.name}, Ação: "${action}" com ${attribute}, Rolagem: ${finalRoll} (d20: ${diceRoll} + bónus: ${attributeBonus}).`;
             }
 
             try {
@@ -649,9 +686,7 @@
                 let rawText = result.candidates[0].content.parts[0].text;
                 const startIndex = rawText.indexOf('{');
                 const endIndex = rawText.lastIndexOf('}');
-                if (startIndex === -1 || endIndex === -1) {
-                    throw new Error("Resposta da IA não contém um JSON válido.");
-                }
+                if (startIndex === -1 || endIndex === -1) { throw new Error("Resposta da IA não contém um JSON válido."); }
                 const jsonText = rawText.substring(startIndex, endIndex + 1);
                 const updateData = JSON.parse(jsonText);
                 
@@ -679,6 +714,9 @@
                         newGameState.map.locations.push({ ...updateData.map_update });
                     }
                 }
+                if(updateData.journal_entry){
+                    newGameState.journal.push(updateData.journal_entry);
+                }
                 newGameState.storySummary = updateData.story_summary || newGameState.storySummary;
                 newGameState.lastUpdate = updateData;
                 newGameState.activeCharacterIndex = (newGameState.activeCharacterIndex + 1) % newGameState.characters.length;
@@ -695,18 +733,34 @@
         // --- Game State Rendering ---
         function renderInventory() {
             inventoryDisplay.innerHTML = '';
-            const myCharacters = gameState.characters.filter(c => c.playerId === currentUser.uid);
-            const myItems = myCharacters.flatMap(c => c.inventory);
-
-            if (myItems.length === 0) {
+            const myCharacter = gameState.characters.find(c => c.playerId === currentUser.uid);
+            if (!myCharacter || myCharacter.inventory.length === 0) {
                 inventoryDisplay.innerHTML = `<p class="text-gray-500 italic">A sua bolsa está vazia.</p>`;
             } else {
-                myItems.forEach(item => {
+                myCharacter.inventory.forEach(item => {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'inventory-item text-gray-300 p-2 rounded';
-                    itemEl.textContent = item;
+                    itemEl.innerHTML = `
+                        ${item.name}
+                        <span class="tooltip">${item.description || 'Um item misterioso...'}</span>
+                    `;
                     inventoryDisplay.appendChild(itemEl);
                 });
+            }
+        }
+        
+        function renderJournal() {
+            journalDisplay.innerHTML = '';
+            if(!gameState.journal || gameState.journal.length === 0) {
+                 journalDisplay.innerHTML = `<p class="text-gray-500 italic">A sua jornada ainda não começou...</p>`;
+            } else {
+                gameState.journal.forEach(entry => {
+                    const entryEl = document.createElement('p');
+                    entryEl.className = 'journal-entry';
+                    entryEl.textContent = entry;
+                    journalDisplay.appendChild(entryEl);
+                });
+                 journalDisplay.scrollTop = journalDisplay.scrollHeight;
             }
         }
 
@@ -727,6 +781,8 @@
                 const nameLabel = (char.playerId === currentUser.uid && !gameState.isSolo) 
                     ? `${char.name} <span class="text-sky-300 text-sm font-normal">(Você)</span>` 
                     : char.name;
+                
+                const attributesText = `For: ${char.attributes.forca} | Des: ${char.attributes.destreza} | Int: ${char.attributes.inteligencia} | Car: ${char.attributes.carisma}`;
 
                 charEl.innerHTML = `
                     <div class="flex justify-between items-center">
@@ -734,9 +790,10 @@
                         <p class="text-sm text-gray-300">${char.hp} / ${char.maxHp}</p>
                     </div>
                     <p class="text-sm text-gray-400 mb-1">${char.class}</p>
-                    <div class="health-bar-background w-full h-2">
+                    <div class="health-bar-background w-full h-2 mb-2">
                         <div class="health-bar-foreground" style="width: ${healthPercentage}%;"></div>
                     </div>
+                    <p class="text-xs text-gray-500">${attributesText}</p>
                 `;
                 charactersDisplay.appendChild(charEl);
             });
@@ -795,6 +852,7 @@
             renderInventory();
             renderCharacters();
             renderMap();
+            renderJournal();
         }
 
         function renderSavedSessions(sessions) {
@@ -870,30 +928,22 @@
                 const isMyTurn = gameState.isSolo || (activeCharacter && activeCharacter.playerId === currentUser.uid);
                 performActionButton.disabled = !isMyTurn;
                 actionInput.disabled = !isMyTurn;
+                attributeSelect.disabled = !isMyTurn;
                 diceRollInput.disabled = !isMyTurn;
                 rollDiceBtn.disabled = !isMyTurn;
                 actionInput.placeholder = isMyTurn ? "É a sua vez de agir!" : `Aguardando a vez de ${activeCharacter?.name}...`;
             } else if (data.status === 'lobby' || data.status === 'setup' || data.status === 'solo_character_creation') {
                 const myCharacter = data.characters.find(c => c.playerId === currentUser.uid);
 
-                if (data.isSolo && data.status === 'solo_character_creation') {
+                if ((data.isSolo && data.status === 'solo_character_creation') || (!myCharacter && !data.isSolo)) {
                     showScreen(characterCreationContainer);
-                    characterCreationTitle.textContent = `Crie o Herói ${data.characters.length + 1} de ${data.playerLimit}`;
-                    confirmCharacterBtn.textContent = (data.characters.length + 1 >= data.playerLimit) ? 'Confirmar e Iniciar Aventura' : 'Confirmar Próximo Herói';
-                    playerClassSelect.innerHTML = '';
-                    if(data.generatedClasses && data.generatedClasses.length > 0) {
-                        data.generatedClasses.forEach(cls => {
-                            const option = document.createElement('option');
-                            option.textContent = cls;
-                            playerClassSelect.appendChild(option);
-                        });
+                    if(data.isSolo){
+                         characterCreationTitle.textContent = `Crie o Herói ${data.characters.length + 1} de ${data.playerLimit}`;
+                         confirmCharacterBtn.textContent = (data.characters.length + 1 >= data.playerLimit) ? 'Confirmar e Iniciar Aventura' : 'Confirmar Próximo Herói';
+                    } else {
+                        characterCreationTitle.textContent = `Crie o seu Herói`;
                     }
-                    playerNameInput.value = '';
-                    playerBackstoryTextarea.value = '';
-                }
-                else if (!myCharacter && !data.isSolo) {
-                    showScreen(characterCreationContainer);
-                    characterCreationTitle.textContent = `Crie o seu Herói`;
+                    
                     playerClassSelect.innerHTML = '';
                     if(data.generatedClasses && data.generatedClasses.length > 0) {
                         data.generatedClasses.forEach(cls => {
@@ -902,8 +952,12 @@
                             playerClassSelect.appendChild(option);
                         });
                     } else {
-                        playerClassSelect.innerHTML = `<option>Aguardando classes...</option>`;
+                         playerClassSelect.innerHTML = `<option>Aguardando classes...</option>`;
                     }
+                    playerNameInput.value = '';
+                    playerBackstoryTextarea.value = '';
+                    document.querySelectorAll('.attribute-input').forEach(input => input.value = 0);
+                    document.getElementById('attribute-points-left').textContent = TOTAL_ATTRIBUTE_POINTS;
                 } else {
                     showScreen(lobbyContainer);
                     roomCodeDisplay.textContent = currentRoomCode;
@@ -939,7 +993,7 @@
                             }
                             const roomRef = doc(collectionRef, currentRoomCode);
                             await updateDoc(roomRef, { status: 'playing' });
-                            await generateStoryNode("A aventura começa.", null);
+                            await generateStoryNode("A aventura começa.", null, null);
                         };
                         lobbyActionArea.appendChild(startButton);
                     } else {
@@ -1014,7 +1068,8 @@
                     map: { locations: [], currentPosition: {x: 50, y: 50} },
                     activeCharacterIndex: 0,
                     lastUpdate: null,
-                    playerLimit: isSolo ? 1 : 3
+                    playerLimit: isSolo ? 1 : 3,
+                    journal: []
                 };
                 await setDoc(roomRef, initialGameState);
                 
@@ -1111,9 +1166,7 @@
                 let rawText = result.candidates[0].content.parts[0].text;
                 const startIndex = rawText.indexOf('{');
                 const endIndex = rawText.lastIndexOf('}');
-                if (startIndex === -1 || endIndex === -1) {
-                    throw new Error("Resposta da IA não contém um JSON válido.");
-                }
+                if (startIndex === -1 || endIndex === -1) { throw new Error("Resposta da IA não contém um JSON válido."); }
                 const jsonText = rawText.substring(startIndex, endIndex + 1);
                 const data = JSON.parse(jsonText);
                 
@@ -1142,6 +1195,18 @@
             });
         });
         
+        document.querySelectorAll('.attribute-input').forEach(input => {
+            input.addEventListener('input', () => {
+                let totalPoints = 0;
+                document.querySelectorAll('.attribute-input').forEach(i => {
+                    totalPoints += parseInt(i.value) || 0;
+                });
+                const pointsLeft = TOTAL_ATTRIBUTE_POINTS - totalPoints;
+                document.getElementById('attribute-points-left').textContent = pointsLeft;
+                creationErrorMessage.textContent = pointsLeft < 0 ? 'Você usou mais pontos do que o permitido!' : '';
+            });
+        });
+
         confirmCharacterBtn.addEventListener('click', async () => {
             const name = playerNameInput.value.trim();
             const backstory = playerBackstoryTextarea.value.trim();
@@ -1150,13 +1215,33 @@
                 creationErrorMessage.textContent = 'Por favor, preencha todos os campos.';
                 return;
             }
+
+            let totalPoints = 0;
+            const attributes = {};
+            document.querySelectorAll('.attribute-input').forEach(i => {
+                const value = parseInt(i.value) || 0;
+                totalPoints += value;
+                attributes[i.id.replace('attr-', '')] = value;
+            });
+
+            if(totalPoints > TOTAL_ATTRIBUTE_POINTS) {
+                creationErrorMessage.textContent = 'Você usou mais pontos do que o permitido!';
+                return;
+            }
+            if(totalPoints < TOTAL_ATTRIBUTE_POINTS) {
+                creationErrorMessage.textContent = 'Você ainda tem pontos para distribuir.';
+                return;
+            }
+
             creationErrorMessage.textContent = '';
 
             const newCharacter = { 
                 name, 
                 class: selectedClass,
                 backstory,
-                hp: 10, maxHp: 10, 
+                attributes,
+                hp: 10 + (attributes.forca * 2), 
+                maxHp: 10 + (attributes.forca * 2), 
                 playerId: currentUser.uid,
                 inventory: []
             };
@@ -1169,7 +1254,7 @@
                     [`players.${currentUser.uid}`]: 'Jogador Solo',
                     status: 'playing'
                 });
-                await generateStoryNode("A aventura começa.", null);
+                await generateStoryNode("A aventura começa.", null, null);
             } else {
                  await updateDoc(roomRef, {
                     characters: arrayUnion(newCharacter),
@@ -1203,13 +1288,14 @@
 
         performActionButton.addEventListener('click', () => {
             const action = actionInput.value.trim();
+            const attribute = attributeSelect.value;
             const roll = parseInt(diceRollInput.value, 10);
             if (!action || !roll || roll < 1 || roll > 20) {
                 actionErrorMessage.textContent = 'Descreva sua ação e insira uma rolagem de d20 válida (1-20).';
                 return;
             }
             actionErrorMessage.textContent = '';
-            generateStoryNode(action, roll);
+            generateStoryNode(action, attribute, roll);
         });
         
         exitSessionBtn.addEventListener('click', () => {
