@@ -1353,65 +1353,65 @@
         });
 
         // --- Authentication Handling ---
-        loginGoogleBtn.addEventListener('click', async () => {
+        loginGoogleBtn.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
+            signInWithPopup(auth, provider).catch(error => {
                 console.error("Erro no login com Google:", error);
                 authStatus.textContent = 'Não foi possível iniciar a sessão.';
-            }
+            });
         });
         
-        loginAnonBtn.addEventListener('click', async () => {
-             try {
-                await signInAnonymously(auth);
-            } catch (error) {
+        loginAnonBtn.addEventListener('click', () => {
+            signInAnonymously(auth).catch(error => {
                 console.error("Falha no login anónimo:", error);
                 authStatus.textContent = "Não foi possível ligar ao servidor.";
-            }
+            });
         });
 
-        onAuthStateChanged(auth, (user) => {
-            authStatus.style.display = 'none';
-            if (user) {
-                currentUser = user;
-                authChoiceSection.classList.add('hidden');
-                mainActions.classList.remove('hidden');
+        const authReady = new Promise(resolve => {
+            onAuthStateChanged(auth, (user) => {
+                authStatus.style.display = 'none';
+                if (user) {
+                    currentUser = user;
+                    authChoiceSection.classList.add('hidden');
+                    mainActions.classList.remove('hidden');
 
-                if (user.isAnonymous) {
-                    userDisplay.innerHTML = `<p>A jogar como anónimo. O progresso não será guardado.</p>`;
-                    savedSessionsContainer.classList.add('hidden');
+                    if (user.isAnonymous) {
+                        userDisplay.innerHTML = `<p>A jogar como anónimo. O progresso não será guardado.</p>`;
+                        savedSessionsContainer.classList.add('hidden');
+                    } else {
+                        userDisplay.innerHTML = `
+                            <div class="flex items-center justify-center gap-4">
+                                <img src="${user.photoURL}" alt="Avatar" class="w-8 h-8 rounded-full">
+                                <p>Bem-vindo, ${user.displayName}!</p>
+                                <button id="logout-btn" class="text-sky-300 hover:underline text-sm">(Sair)</button>
+                            </div>
+                        `;
+                        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                        listenForSavedSessions(user.uid);
+                    }
                 } else {
-                    userDisplay.innerHTML = `
-                        <div class="flex items-center justify-center gap-4">
-                            <img src="${user.photoURL}" alt="Avatar" class="w-8 h-8 rounded-full">
-                            <p>Bem-vindo, ${user.displayName}!</p>
-                            <button id="logout-btn" class="text-sky-300 hover:underline text-sm">(Sair)</button>
-                        </div>
-                    `;
-                    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-                    listenForSavedSessions(user.uid);
+                    currentUser = null;
+                    authChoiceSection.classList.remove('hidden');
+                    mainActions.classList.add('hidden');
+                    userDisplay.innerHTML = '';
+                    savedSessionsContainer.classList.add('hidden');
+                    if (unsubscribeFromSessions) unsubscribeFromSessions();
                 }
-            } else {
-                currentUser = null;
-                authChoiceSection.classList.remove('hidden');
-                mainActions.classList.add('hidden');
-                userDisplay.innerHTML = '';
-                savedSessionsContainer.classList.add('hidden');
-                if (unsubscribeFromSessions) unsubscribeFromSessions();
-            }
+                resolve(user);
+            });
         });
 
         // --- Page Load Initialization ---
         window.onload = () => {
-            // Add a click listener to the document to start music on user interaction
             document.body.addEventListener('click', () => {
                 bgMusic.volume = 0.1;
                 if (bgMusic.paused) {
                     bgMusic.play().catch(e => console.log("A reprodução da música foi bloqueada pelo navegador."));
                 }
             }, { once: true });
+            
+            authReady.catch(err => console.error("A autenticação falhou no carregamento da página"));
         };
     </script>
 </body>
