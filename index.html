@@ -11,42 +11,57 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         body { font-family: 'EB Garamond', serif; overflow-x: hidden; }
-        .title-font { font-family: 'Cinzel Decorative', serif; }
+        .title-font { font-family: 'Cinzel Decorative', serif; text-shadow: 0 0 10px rgba(253, 224, 71, 0.5); }
         .story-text { white-space: pre-wrap; overflow-wrap: break-word; }
-        .action-button { background: linear-gradient(145deg, #b91c1c, #7f1d1d); border: 1px solid #fef08a; color: #fefce8; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
-        .action-button:hover:not(:disabled) { background: linear-gradient(145deg, #c82a2a, #902a2a); transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0, 0, 0, 0.5); }
+        .action-button { background: linear-gradient(145deg, #b91c1c, #7f1d1d); border: 1px solid #fef08a; color: #fefce8; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255,255,255,0.2); transition: all 0.2s ease-in-out; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
+        .action-button:hover:not(:disabled) { background: linear-gradient(145deg, #c82a2a, #902a2a); transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255,255,255,0.2); }
         .action-button:disabled { background: #57534e; cursor: not-allowed; opacity: 0.6; }
-        .secondary-button { background: linear-gradient(145deg, #075985, #0c4a6e); border: 1px solid #7dd3fc; color: #e0f2fe; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
-        .secondary-button:hover:not(:disabled) { background: linear-gradient(145deg, #0369a1, #083344); }
+        .secondary-button { background: linear-gradient(145deg, #075985, #0c4a6e); border: 1px solid #7dd3fc; color: #e0f2fe; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255,255,255,0.2); transition: all 0.2s ease-in-out; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
+        .secondary-button:hover:not(:disabled) { background: linear-gradient(145deg, #0369a1, #083344); transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255,255,255,0.2); }
         .secondary-button:disabled { background: #4b5563; cursor: not-allowed; opacity: 0.6; }
         .suggestion-chip { background-color: rgba(12, 74, 110, 0.5); border: 1px solid #7dd3fc; transition: all 0.2s ease-in-out; cursor: pointer; }
-        .suggestion-chip:hover { background-color: rgba(3, 105, 161, 0.7); border-color: #e0f2fe; }
+        .suggestion-chip:hover { background-color: rgba(3, 105, 161, 0.7); border-color: #e0f2fe; transform: scale(1.05); }
         #background { background-image: url('https://images.unsplash.com/photo-1532009877282-3340270e1c41?q=80&w=1974&auto-format&fit=crop'); background-size: cover; background-position: center; filter: blur(5px) brightness(0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
-        .container { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(253, 224, 71, 0.2); }
+        .container-screen { background: radial-gradient(ellipse at center, rgba(17, 24, 39, 0.95) 0%, rgba(17, 24, 39, 0.85) 100%); backdrop-filter: blur(12px); border: 1px solid rgba(253, 224, 71, 0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(253, 224, 71, 0.1); }
         .spinner { border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; border-top-color: #fef08a; width: 40px; height: 40px; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .divider { height: 1px; background: linear-gradient(to right, transparent, rgba(253, 224, 71, 0.5), transparent); margin: 1.5rem 0; }
-        #narrate-btn { background-color: rgba(253, 224, 71, 0.1); border: 1px solid rgba(253, 224, 71, 0.3); transition: all 0.2s ease-in-out; }
-        #narrate-btn:hover { background-color: rgba(253, 224, 71, 0.2); }
-        #narrate-btn.speaking svg { color: #fef08a; }
-        .inventory-item { background-color: rgba(0,0,0,0.3); border: 1px solid #a3a3a3; }
+        .narrate-control { background-color: rgba(253, 224, 71, 0.1); border: 1px solid rgba(253, 224, 71, 0.3); transition: all 0.2s ease-in-out; }
+        .narrate-control:hover:not(:disabled) { background-color: rgba(253, 224, 71, 0.2); }
+        #narrate-btn.speaking svg, #narrate-btn:disabled svg { color: #fef08a; animation: pulse-speak 1.5s infinite ease-in-out; }
+        @keyframes pulse-speak { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        .inventory-item { background-color: rgba(0,0,0,0.3); border: 1px solid #a3a3a3; transition: all 0.2s ease-in-out; }
+        .inventory-item:hover { background-color: rgba(253, 224, 71, 0.1); border-color: #fef08a; }
         .health-bar-background { background-color: #4b5563; border-radius: 0.25rem; overflow: hidden; }
-        .health-bar-foreground { background-color: #dc2626; height: 100%; transition: width 0.5s ease-in-out; }
-        .character-card { transition: all 0.3s ease-in-out; }
+        .health-bar-foreground { background: linear-gradient(to right, #ef4444, #b91c1c); height: 100%; transition: width 0.5s ease-in-out; }
+        .character-card { transition: all 0.3s ease-in-out; background: rgba(0,0,0,0.2); border: 1px solid transparent; }
         .character-card.downed { opacity: 0.5; filter: grayscale(80%); }
-        .character-card.active-turn { box-shadow: 0 0 15px #fef08a; transform: scale(1.02); }
+        .character-card.active-turn { box-shadow: 0 0 15px #fef08a; transform: scale(1.02); border-color: #fef08a; background: rgba(253, 224, 71, 0.05); }
+        .character-card.is-me { border-color: rgba(125, 211, 252, 0.7); box-shadow: 0 0 15px rgba(125, 211, 252, 0.5); }
+        .session-item { background-color: rgba(0,0,0,0.2); border: 1px solid rgba(253, 224, 71, 0.2); transition: all 0.2s ease-in-out;}
+        .session-item:hover { background-color: rgba(253, 224, 71, 0.1); border-color: #fef08a; }
         #map-container { position: relative; width: 100%; padding-top: 66.66%; background-image: url('https://images.unsplash.com/photo-1563863528865-8a6b72a26012?q=80&w=2070&auto-format&fit=crop'); background-size: cover; border-radius: 0.25rem; overflow: hidden; border: 1px solid rgba(253, 224, 71, 0.2); }
         #fog-of-war { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: black; mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); -webkit-mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: mask-position 1s ease-in-out; -webkit-mask-position: 50% 50%; mask-position: 50% 50%; }
-        .map-marker { position: absolute; transform: translate(-50%, -50%); font-size: 24px; cursor: pointer; text-shadow: 0 0 5px black; }
+        .map-marker { position: absolute; transform: translate(-50%, -50%); font-size: 24px; cursor: pointer; text-shadow: 0 0 5px black; transition: transform 0.2s ease-in-out; }
+        .map-marker:hover { transform: translate(-50%, -50%) scale(1.2); }
         .player-marker { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+        @keyframes pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+        #scene-ambience-container { text-shadow: 0 0 10px black; }
+        input, select, textarea { box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
+        input:focus, select:focus, textarea:focus { box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 0 10px rgba(253, 224, 71, 0.5); }
+        @keyframes dice-roll-effect {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.2) rotate(-10deg); }
+            75% { transform: scale(1.2) rotate(10deg); }
+        }
+        .dice-rolling { animation: dice-roll-effect 0.4s ease-in-out; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
 
     <div id="background"></div>
 
-    <div id="entry-container" class="w-full max-w-md container rounded-lg shadow-2xl p-8 text-center">
+    <div id="entry-container" class="w-full max-w-md container-screen rounded-lg shadow-2xl p-8 text-center">
         <h1 class="text-5xl title-font text-yellow-200 mb-8">Crónicas da IA</h1>
         <div class="space-y-4">
             <button id="host-game-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Ser o Mestre (Criar Aventura)</button>
@@ -58,10 +73,17 @@
             </div>
             <button id="solo-play-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Jogar a Solo</button>
         </div>
+        <div id="saved-sessions-container" class="mt-8 hidden">
+            <div class="divider"></div>
+            <h2 class="text-2xl title-font text-yellow-200 mb-4">As Suas Crónicas</h2>
+            <div id="saved-sessions-list" class="space-y-3 max-h-48 overflow-y-auto">
+                <!-- As sessões serão injetadas aqui -->
+            </div>
+        </div>
         <p id="auth-status" class="text-gray-400 mt-4 text-sm h-10">A ligar ao servidor...</p>
     </div>
 
-    <div id="join-room-container" class="w-full max-w-md container rounded-lg shadow-2xl p-8 hidden">
+    <div id="join-room-container" class="w-full max-w-md container-screen rounded-lg shadow-2xl p-8 hidden">
         <h1 class="text-4xl title-font text-yellow-200 text-center mb-6">Entrar na Aventura</h1>
         <input type="text" id="room-code-input" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white text-center text-2xl tracking-widest uppercase" placeholder="CÓDIGO DA SALA" maxlength="6">
         <p id="join-error-message" class="text-red-400 text-center mt-4 h-5"></p>
@@ -71,7 +93,7 @@
         </div>
     </div>
 
-    <div id="setup-container" class="w-full max-w-2xl container rounded-lg shadow-2xl p-8 hidden">
+    <div id="setup-container" class="w-full max-w-2xl container-screen rounded-lg shadow-2xl p-8 hidden">
         <h1 id="setup-title" class="text-4xl title-font text-yellow-200 text-center mb-6">Criar Aventura</h1>
         <div class="mb-4">
             <label for="theme-input" class="block text-sm font-medium text-yellow-100 mb-2">O tema da vossa jornada:</label>
@@ -101,7 +123,7 @@
         </div>
     </div>
 
-    <div id="character-creation-container" class="w-full max-w-2xl container rounded-lg shadow-2xl p-8 hidden">
+    <div id="character-creation-container" class="w-full max-w-2xl container-screen rounded-lg shadow-2xl p-8 hidden">
         <h1 id="character-creation-title" class="text-4xl title-font text-yellow-200 text-center mb-6">Crie o seu Herói</h1>
         <div class="p-4 border border-yellow-200/20 rounded-lg space-y-4">
             <div class="flex flex-col sm:flex-row gap-4 items-center">
@@ -118,17 +140,19 @@
         </div>
     </div>
 
-    <div id="lobby-container" class="w-full max-w-md container rounded-lg shadow-2xl p-8 hidden text-center">
+    <div id="lobby-container" class="w-full max-w-md container-screen rounded-lg shadow-2xl p-8 hidden text-center">
         <h2 class="text-2xl title-font text-yellow-200">Código da Sala:</h2>
-        <p id="room-code-display" class="text-5xl font-bold tracking-widest my-4 bg-gray-900/50 p-4 rounded-lg"></p>
+        <p id="room-code-display" class="text-5xl font-bold tracking-widest my-4 bg-gray-900/50 p-4 rounded-lg border border-yellow-200/20 shadow-lg">A GERAR...</p>
         <p class="text-yellow-100">Partilhe este código com os seus amigos.</p>
         <div class="divider"></div>
         <h3 id="lobby-party-status" class="text-xl title-font text-yellow-200">Comitiva Formada:</h3>
         <div id="lobby-players-list" class="my-4 text-left space-y-2"></div>
-        <p id="lobby-waiting-message" class="text-gray-400 italic"></p>
+        <div id="lobby-action-area" class="mt-6">
+             <p id="lobby-error-message" class="text-red-400 text-center mb-2 h-5"></p>
+        </div>
     </div>
 
-    <div id="game-container" class="w-full max-w-5xl container rounded-lg shadow-2xl p-8 hidden">
+    <div id="game-container" class="w-full max-w-5xl container-screen rounded-lg shadow-2xl p-8 hidden">
         <button id="exit-session-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white" title="Sair da Sessão">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -136,14 +160,20 @@
         </button>
         <div class="flex flex-col lg:flex-row gap-8">
             <div class="flex-grow">
-                <div id="image-container" class="w-full h-64 bg-gray-900/50 rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-gray-700">
-                    <p class="text-yellow-200 title-font">A sua aventura começará em breve...</p>
+                <div id="scene-ambience-container" class="w-full h-64 bg-gray-900/50 rounded-lg mb-4 flex flex-col items-center justify-center overflow-hidden border border-gray-700 relative text-center p-4">
+                    <p id="ambience-icon" class="text-6xl mb-2"></p>
+                    <p id="ambience-text" class="text-2xl text-yellow-200 title-font"></p>
                 </div>
                 <div class="relative">
-                    <button id="narrate-btn" class="absolute top-0 right-0 p-2 rounded-full text-yellow-400 hover:text-yellow-200" title="Narrar texto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.964 15.964a2 2 0 01-2.828 0l-1.13-1.13a2 2 0 00-2.828 0L7.05 17.05a2 2 0 01-2.828 0L2.828 15.657a2 2 0 010-2.828l1.414-1.414a2 2 0 000-2.828L2.828 7.172a2 2 0 010-2.828l1.414-1.414a2 2 0 012.828 0L9.12 4.98a2 2 0 002.828 0l1.13-1.13a2 2 0 012.828 0l1.414 1.414a2 2 0 010 2.828l-1.414 1.414a2 2 0 000 2.828l1.414 1.414a2 2 0 010 2.828l-1.414 1.414z" /></svg>
-                    </button>
-                    <div id="story-area" class="mb-4 min-h-[150px] pr-10">
+                     <div class="absolute top-0 right-0 flex items-center gap-2">
+                        <button id="voice-toggle-btn" class="narrate-control p-2 rounded-full text-sky-300 hover:text-sky-100" title="Mudar Voz (Feminina/Masculina)">
+                           ♀
+                        </button>
+                        <button id="narrate-btn" class="narrate-control p-2 rounded-full text-yellow-400 hover:text-yellow-200" title="Narrar texto">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.964 15.964a2 2 0 01-2.828 0l-1.13-1.13a2 2 0 00-2.828 0L7.05 17.05a2 2 0 01-2.828 0L2.828 15.657a2 2 0 010-2.828l1.414-1.414a2 2 0 000-2.828L2.828 7.172a2 2 0 010-2.828l1.414-1.414a2 2 0 012.828 0L9.12 4.98a2 2 0 002.828 0l1.13-1.13a2 2 0 012.828 0l1.414 1.414a2 2 0 010 2.828l-1.414 1.414a2 2 0 000 2.828l1.414 1.414a2 2 0 010 2.828l-1.414 1.414z" /></svg>
+                        </button>
+                    </div>
+                    <div id="story-area" class="mb-4 min-h-[150px] pr-24">
                         <p id="story-text" class="text-xl story-text text-gray-300 leading-relaxed"></p>
                     </div>
                 </div>
@@ -154,9 +184,14 @@
                         <div id="suggestions-chips" class="flex flex-wrap gap-2"></div>
                     </div>
                     <label for="action-input" class="block text-sm font-medium text-yellow-100 mb-2">O que você faz?</label>
-                    <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex flex-col sm:flex-row gap-2 items-center">
                         <input type="text" id="action-input" class="flex-grow bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400" placeholder="Descreva sua ação aqui...">
-                        <input type="number" id="dice-roll-input" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white w-full sm:w-28 text-center" placeholder="d20" min="1" max="20">
+                        <div class="flex gap-2 w-full sm:w-auto">
+                           <input type="number" id="dice-roll-input" class="bg-gray-800 border border-gray-600 rounded-lg p-2 text-white w-full text-center" placeholder="d20" min="1" max="20">
+                           <button id="roll-dice-btn" class="secondary-button p-2 rounded-lg" title="Lançar um d20">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l-8 4.5v9l8 4.5 8-4.5v-9l-8-4.5z"></path><path d="M12 2.5v20"></path><path d="M4 7l8 4.5 8-4.5"></path><path d="M4 16l8-4.5 8 4.5"></path></svg>
+                           </button>
+                        </div>
                         <button id="perform-action-btn" class="action-button font-bold py-2 px-6 rounded-lg w-full sm:w-auto">Agir!</button>
                     </div>
                     <p id="action-error-message" class="text-red-400 text-center mt-2 h-5"></p>
@@ -167,7 +202,7 @@
                 <h2 class="title-font text-2xl text-yellow-200 mb-4">Comitiva</h2>
                 <div id="characters-display" class="space-y-4 mb-6"></div>
                 <div class="divider"></div>
-                <h2 class="title-font text-2xl text-yellow-200 mb-4">Inventário</h2>
+                <h2 class="title-font text-2xl text-yellow-200 mb-4">O Seu Inventário</h2>
                 <div id="inventory-display" class="space-y-2 mb-6"></div>
                 <div class="divider"></div>
                 <h2 class="title-font text-2xl text-yellow-200 mb-4">Mapa do Mundo</h2>
@@ -184,24 +219,31 @@
         <div class="spinner mb-4"></div>
         <p id="loading-text" class="text-xl text-yellow-200 title-font"></p>
     </div>
+
+    <div id="confirmation-modal" style="display: none;" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div class="w-full max-w-sm p-6 rounded-lg text-center" style="background: radial-gradient(ellipse at center, rgba(17, 24, 39, 0.95) 0%, rgba(17, 24, 39, 0.85) 100%); border: 1px solid rgba(253, 224, 71, 0.2);">
+            <p id="confirmation-message" class="text-lg mb-6">Tem a certeza?</p>
+            <div class="flex gap-4">
+                <button id="confirm-no-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-2 px-4 rounded-lg">Não</button>
+                <button id="confirm-yes-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-2 px-4 rounded-lg">Sim</button>
+            </div>
+        </div>
+    </div>
     
-    <audio id="bg-music" loop>
-        <source src="https://www.chosic.com/wp-content/uploads/2021/05/The-Vikings.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="bg-music" loop src="https://assets.chosic.com/wp-content/uploads/2022/01/Fantasy-Medieval-Music.mp3"></audio>
+    <audio id="ambience-sound" loop></audio>
+    <audio id="narration-audio"></audio>
 
     <script type="module">
         // Import Firebase modules from the CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- App Configuration ---
-        // IMPORTANTE: Para implementar no GitHub ou noutro local, substitua a string abaixo
-        // pela sua própria chave de API do Google AI Studio. Pode obtê-la em https://aistudio.google.com/app/apikey
         const GEMINI_API_KEY = "AIzaSyDfO4GbBln20IxuTVNKWf7Z0DldNnVxuU4"; 
 
         // --- Firebase Configuration ---
-        // Esta configuração está agora fixa para permitir a implementação em plataformas como o GitHub Pages.
         const firebaseConfig = {
           apiKey: "AIzaSyBWUuPnKsxDDpGvI4tG4XaskHmxNAKorhk",
           authDomain: "ia-rpg-64b7f.firebaseapp.com",
@@ -222,10 +264,13 @@
         let gameState = {};
         let currentUser = null;
         let currentRoomCode = null;
-        let unsubscribeFromRoom = null; // Function to stop listening to room updates
+        let unsubscribeFromRoom = null;
+        let unsubscribeFromSessions = null;
+        let isAINarrating = false;
+        let currentVoice = 'Kore'; // 'Kore' = Feminina, 'Charon' = Masculina
 
         // --- DOM Element References ---
-        const allContainers = document.querySelectorAll('.container');
+        const allScreens = document.querySelectorAll('.container-screen');
         const entryContainer = document.getElementById('entry-container');
         const soloPlayBtn = document.getElementById('solo-play-btn');
         const hostGameBtn = document.getElementById('host-game-btn');
@@ -239,7 +284,8 @@
         const lobbyContainer = document.getElementById('lobby-container');
         const roomCodeDisplay = document.getElementById('room-code-display');
         const lobbyPlayersList = document.getElementById('lobby-players-list');
-        const lobbyWaitingMessage = document.getElementById('lobby-waiting-message');
+        const lobbyActionArea = document.getElementById('lobby-action-area');
+        const lobbyErrorMessage = document.getElementById('lobby-error-message');
         const lobbyPartyStatus = document.getElementById('lobby-party-status');
         const setupContainer = document.getElementById('setup-container');
         const setupTitle = document.getElementById('setup-title');
@@ -265,78 +311,283 @@
         const suggestionsChips = document.getElementById('suggestions-chips');
         const actionInput = document.getElementById('action-input');
         const diceRollInput = document.getElementById('dice-roll-input');
+        const rollDiceBtn = document.getElementById('roll-dice-btn');
         const performActionButton = document.getElementById('perform-action-btn');
         const actionErrorMessage = document.getElementById('action-error-message');
         const narrateBtn = document.getElementById('narrate-btn');
-        const imageContainer = document.getElementById('image-container');
+        const voiceToggleBtn = document.getElementById('voice-toggle-btn');
+        const sceneAmbienceContainer = document.getElementById('scene-ambience-container');
+        const ambienceIcon = document.getElementById('ambience-icon');
+        const ambienceText = document.getElementById('ambience-text');
         const loadingText = document.getElementById('loading-text');
         const charactersDisplay = document.getElementById('characters-display');
         const inventoryDisplay = document.getElementById('inventory-display');
         const bgMusic = document.getElementById('bg-music');
+        const ambienceSound = document.getElementById('ambience-sound');
+        const narrationAudio = document.getElementById('narration-audio');
         const mapContainer = document.getElementById('map-container');
         const mapMarkersContainer = document.getElementById('map-markers');
         const fogOfWar = document.getElementById('fog-of-war');
         const mapTooltip = document.getElementById('map-tooltip');
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const confirmMessage = document.getElementById('confirmation-message');
+        const confirmYesBtn = document.getElementById('confirm-yes-btn');
+        const confirmNoBtn = document.getElementById('confirm-no-btn');
+        let confirmCallback = null;
 
         // --- Constants ---
         const loadingPhrases = ["Os bardos compõem a vossa canção...", "O destino vira as suas cartas...", "As estrelas alinham-se para a vossa jornada...", "Os ventos da magia sussurram o vosso nome...", "A forja do destino aquece...", "Antigas profecias desenrolam-se..."];
         const STORY_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-        const IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
+        const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const soundscapeMap = {
+            forest: 'https://assets.chosic.com/wp-content/uploads/2022/01/forest-ambience.mp3',
+            cave: 'https://assets.chosic.com/wp-content/uploads/2022/01/cave-ambience.mp3',
+            battle: 'https://assets.chosic.com/wp-content/uploads/2021/07/War-Sounds.mp3',
+            tavern: 'https://assets.chosic.com/wp-content/uploads/2022/01/medieval-tavern.mp3',
+            city: 'https://assets.chosic.com/wp-content/uploads/2022/01/medieval-city.mp3',
+            ocean: 'https://assets.chosic.com/wp-content/uploads/2021/04/Ocean-waves.mp3',
+            village: 'https://assets.chosic.com/wp-content/uploads/2022/01/medieval-village.mp3',
+            dungeon: 'https://assets.chosic.com/wp-content/uploads/2022/01/cave-ambience.mp3', // Reusing cave
+            market: 'https://assets.chosic.com/wp-content/uploads/2022/01/medieval-city.mp3', // Reusing city
+            default: 'https://assets.chosic.com/wp-content/uploads/2022/01/mysterious-wind.mp3'
+        };
 
         // --- UI Management ---
         function showScreen(screen) {
-            allContainers.forEach(c => c.classList.add('hidden'));
+            allScreens.forEach(c => c.classList.add('hidden'));
             screen.classList.remove('hidden');
         }
 
-        // --- Text-to-Speech Narration ---
-        let voices = [];
-        function populateVoiceList() { if (typeof speechSynthesis !== 'undefined') { voices = speechSynthesis.getVoices(); } }
-        populateVoiceList();
-        if (typeof speechSynthesis !== 'undefined') { speechSynthesis.onvoiceschanged = populateVoiceList; }
-
-        function toggleNarration() {
-            const isSpeaking = speechSynthesis.speaking;
-            speechSynthesis.cancel();
-            if (isSpeaking) { narrateBtn.classList.remove('speaking'); return; }
-            const text = storyTextElement.innerText;
-            if (!text) return;
-            const utterance = new SpeechSynthesisUtterance(text);
-            const ptVoice = voices.find(voice => voice.lang.startsWith('pt'));
-            if (ptVoice) utterance.voice = ptVoice;
-            utterance.rate = 1; utterance.pitch = 1;
-            utterance.onstart = () => narrateBtn.classList.add('speaking');
-            utterance.onend = () => narrateBtn.classList.remove('speaking');
-            utterance.onerror = () => narrateBtn.classList.remove('speaking');
-            speechSynthesis.speak(utterance);
+        function showConfirmationModal(message, onConfirm) {
+            confirmMessage.textContent = message;
+            confirmCallback = onConfirm;
+            confirmationModal.style.display = 'flex';
         }
-        narrateBtn.addEventListener('click', toggleNarration);
 
-        // --- Sound Effects ---
-        function playSound(type) {
-            Tone.start();
-            const synth = new Tone.Synth().toDestination();
-            if (type === 'success') {
-                synth.triggerAttackRelease("C4", "8n", Tone.now());
-                synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.2);
-            } else if (type === 'failure') {
-                synth.triggerAttackRelease("F#2", "8n");
+        function hideConfirmationModal() {
+            confirmCallback = null;
+            confirmationModal.style.display = 'none';
+        }
+
+        confirmYesBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            hideConfirmationModal();
+        });
+
+        confirmNoBtn.addEventListener('click', hideConfirmationModal);
+        
+        // --- API Call with Retry Logic ---
+        async function fetchWithRetry(url, options, retries = 3, initialDelay = 1000) {
+            let delay = initialDelay;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 503 || response.status === 429) {
+                        throw new Error(`API Error: ${response.status}`);
+                    }
+                    if (!response.ok) {
+                         const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error structure' } }));
+                         console.error("API Error Details:", errorData);
+                         throw new Error(`API request failed with status ${response.status}: ${errorData.error.message}`);
+                    }
+                    return response; // Success
+                } catch (error) {
+                    console.warn(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`);
+                    if (i === retries - 1) throw error; // Last attempt failed, rethrow error
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Exponential backoff
+                }
             }
         }
 
-        // --- AI Image Generation ---
-        async function generateImage(prompt) {
-            if (GEMINI_API_KEY === "SUA_CHAVE_API_AQUI") return;
-            imageContainer.innerHTML = `<div class="spinner"></div>`;
-            try {
-                const response = await fetch(IMAGE_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instances: [{ prompt: `fantasy art, ${prompt}` }], parameters: { "sampleCount": 1 } }) });
-                if (!response.ok) throw new Error('Image generation failed');
-                const result = await response.json();
-                if (result.predictions && result.predictions[0].bytesBase64Encoded) {
-                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-                    imageContainer.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover" alt="Cena da aventura gerada por IA">`;
+        // --- Text-to-Speech Narration ---
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+       function pcmToWav(pcmData, sampleRate) {
+            const numSamples = pcmData.byteLength / 2;
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const blockAlign = (numChannels * bitsPerSample) / 8;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = numSamples * numChannels * (bitsPerSample / 8);
+
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+            
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
                 }
-            } catch (error) { console.error("Erro ao gerar imagem:", error); imageContainer.innerHTML = `<p class="text-gray-500">Não foi possível gerar a imagem da cena.</p>`; }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            const pcmAsInt16 = new Int16Array(pcmData);
+            for (let i = 0; i < pcmAsInt16.length; i++) {
+                view.setInt16(44 + i * 2, pcmAsInt16[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        async function narrateWithAI(text, hint) {
+            if (isAINarrating || !text) return;
+            isAINarrating = true;
+            narrateBtn.disabled = true;
+            narrateBtn.classList.add('speaking');
+            
+            try {
+                const prompt = `Fale com um tom ${hint || 'neutro'}: ${text}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { 
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: currentVoice }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const response = await fetchWithRetry(TTS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                const mimeType = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+                    
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const wavBlob = pcmToWav(pcmData, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    narrationAudio.src = audioUrl;
+                    narrationAudio.play().catch(e => {
+                        console.error("Erro ao tocar a narração:", e);
+                        isAINarrating = false;
+                        narrateBtn.disabled = false;
+                        narrateBtn.classList.remove('speaking');
+                    });
+                } else {
+                    throw new Error("Dados de áudio inválidos recebidos da API.");
+                }
+
+            } catch (error) {
+                console.error("Erro na narração com IA:", error);
+                isAINarrating = false;
+                narrateBtn.disabled = false;
+                narrateBtn.classList.remove('speaking');
+            }
+        }
+        
+        narrationAudio.onended = () => {
+             isAINarrating = false;
+             narrateBtn.disabled = false;
+             narrateBtn.classList.remove('speaking');
+        };
+        
+        narrateBtn.addEventListener('click', () => {
+            if (narrationAudio.paused && gameState.lastUpdate?.text) {
+                 narrateWithAI(gameState.lastUpdate.text, gameState.lastUpdate.narration_hint);
+            } else {
+                 narrationAudio.pause();
+                 narrationAudio.currentTime = 0;
+                 isAINarrating = false;
+                 narrateBtn.disabled = false;
+                 narrateBtn.classList.remove('speaking');
+            }
+        });
+
+        voiceToggleBtn.addEventListener('click', () => {
+            if(isAINarrating) return;
+            currentVoice = (currentVoice === 'Kore') ? 'Charon' : 'Kore'; // Kore = Feminina, Charon = Masculina
+            voiceToggleBtn.innerHTML = (currentVoice === 'Kore') ? '♀' : '♂';
+        });
+
+        // --- Sound Effects & Ambience ---
+        function playSound(type) {
+            Tone.start();
+            if (type === 'success') {
+                const synth = new Tone.Synth().toDestination();
+                synth.triggerAttackRelease("C4", "8n", Tone.now());
+                synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.2);
+            } else if (type === 'failure') {
+                const synth = new Tone.Synth().toDestination();
+                synth.triggerAttackRelease("F#2", "8n");
+            } else if (type === 'dice') {
+                const synth = new Tone.MembraneSynth({
+                    pitchDecay: 0.01,
+                    octaves: 5,
+                    oscillator: { type: 'square' },
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.1,
+                        sustain: 0.01,
+                        release: 0.05,
+                        attackCurve: 'exponential'
+                    }
+                }).toDestination();
+                synth.volume.value = -15;
+                const now = Tone.now();
+                synth.triggerAttackRelease("C4", "32n", now);
+                synth.triggerAttackRelease("G3", "32n", now + 0.05);
+                synth.triggerAttackRelease("E4", "32n", now + 0.1);
+                synth.triggerAttackRelease("A3", "32n", now + 0.16);
+            }
+        }
+        
+        function updateAmbience(soundscapeKeyword, locationName, icon) {
+            // Update visual ambience
+            ambienceIcon.textContent = icon || '⚔️';
+            ambienceText.textContent = locationName || 'Local Desconhecido';
+
+            // Update audio ambience
+            const soundUrl = soundscapeMap[soundscapeKeyword] || soundscapeMap.default;
+            if (ambienceSound.src !== soundUrl) {
+                ambienceSound.src = soundUrl;
+                ambienceSound.volume = 0;
+                ambienceSound.play().catch(e => console.log("Playback blocked"));
+                
+                // Fade in/out logic
+                let ambienceVolume = 0;
+                const fadeIn = setInterval(() => {
+                    ambienceVolume = Math.min(1, ambienceVolume + 0.1);
+                    ambienceSound.volume = ambienceVolume * 0.3; // Max ambience volume
+                    bgMusic.volume = (1 - ambienceVolume) * 0.1; // Lower main music
+                    if (ambienceVolume >= 1) clearInterval(fadeIn);
+                }, 100);
+            }
         }
 
         // --- AI Story Generation ---
@@ -348,44 +599,52 @@
             const randomIndex = Math.floor(Math.random() * loadingPhrases.length);
             loadingText.textContent = loadingPhrases[randomIndex];
             loadingOverlay.style.display = 'flex';
-            speechSynthesis.cancel();
             
             if (diceRoll) { // Only play sound if it's a player action
                 if (diceRoll >= 11) playSound('success'); else playSound('failure');
             }
 
-            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, HP: ${c.hp}/${c.maxHp}, História: ${c.backstory})`).join('; ');
-            const systemPrompt = `
-                Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
-                O inventário contém: ${gameState.inventory.join(', ') || 'nada'}.
-                Resumo da história: ${gameState.storySummary}.
-                A posição atual no mapa (x,y em percentagem) é (${gameState.map.currentPosition.x}%, ${gameState.map.currentPosition.y}%).
+            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, HP: ${c.hp}/${c.maxHp}, Inventário: ${c.inventory.join(', ') || 'vazio'})`).join('; ');
+            
+            let systemPrompt;
+            let userQuery;
 
-                O jogador realizou uma ação com um resultado de d20. Narre o resultado.
-                - 1: Falha Crítica.
-                - 2-10: Falha.
-                - 11-19: Sucesso.
-                - 20: Sucesso Crítico.
+            const baseJsonResponse = `{
+              "text": "...",
+              "narration_hint": "um tom de voz que corresponda à cena (ex: tenso, aliviado, misterioso, zangado).",
+              "soundscape_keyword": "uma única palavra-chave em inglês (ex: forest, cave, battle, tavern, city, ocean, village, dungeon) que descreva o ambiente sonoro da cena.",
+              "choices": [ { "text": "Sugestão de ação." }],
+              "items_update": [{"character_name": "NomeDoHeroi", "items": ["Item 1"]}],
+              "health_changes": [{"character_name": "NomeDoHeroi", "change": -3}],
+              "map_update": {"x": 55, "y": 52, "location_name": "A Floresta Sombria", "icon": "🌳"},
+              "story_summary": "Um resumo atualizado dos eventos chave."
+            }`;
 
-                Sua resposta DEVE ser um objeto JSON válido.
-                A estrutura deve ser:
-                {
-                  "text": "Narração vívida do resultado da ação.",
-                  "image_prompt": "Um prompt curto, em inglês, para gerar uma imagem da cena.",
-                  "choices": [ { "text": "Sugestão de ação." }],
-                  "found_items": ["Item 1"],
-                  "health_changes": [{"character_name": "NomeDoHeroi", "change": -3}],
-                  "map_update": {"x": 55, "y": 52, "location_name": "A Floresta Sombria", "icon": "🌳"},
-                  "story_summary": "Um resumo atualizado dos eventos chave."
-                }
-                As coordenadas do mapa (x, y) devem ser em percentagem (0-100). Seja criativo. A história é em português do Brasil.
-            `;
+            if (action === "A aventura começa.") {
+                systemPrompt = `
+                    Você é um Mestre de RPG prestes a começar uma nova aventura. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
+                    Sua tarefa é criar a cena de abertura. Descreva o cenário inicial, introduza a situação em que os heróis se encontram e dê o pontapé inicial para a jornada. A narração é feita por uma voz de IA que pode ser masculina ou feminina. Pode, ocasionalmente, dar sugestões sobre que tipo de voz usar no campo "narration_hint".
+                    Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida da cena de abertura..."').replace('"um tom de voz que corresponda à cena (ex: tenso, aliviado, misterioso, zangado)."', '"um tom de voz inspirador e épico para o início da aventura."')}
+                    Seja criativo e imersivo. A história é em português do Brasil.
+                `;
+                userQuery = `Comece a aventura com base no tema e nos personagens fornecidos.`;
+            } else {
+                systemPrompt = `
+                    Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
+                    Resumo da história: ${gameState.storySummary}. A narração é feita por uma voz de IA que pode ser masculina ou feminina. Pode, ocasionalmente, dar sugestões sobre que tipo de voz usar no campo "narration_hint".
+                    A posição atual no mapa (x,y em percentagem) é (${gameState.map.currentPosition.x}%, ${gameState.map.currentPosition.y}%).
 
-            const userQuery = `Ação do jogador: "${action}". Rolagem de d20: ${diceRoll}. Gere a narração e todos os outros campos do JSON.`;
+                    O jogador realizou uma ação com um resultado de d20. Narre o resultado.
+                    - 1: Falha Crítica. - 2-10: Falha. - 11-19: Sucesso. - 20: Sucesso Crítico.
+
+                    Sua resposta DEVE ser um objeto JSON válido. A estrutura deve ser: ${baseJsonResponse.replace('"..."', '"Narração vívida do resultado da ação."')}
+                    As coordenadas do mapa (x, y) devem ser em percentagem (0-100). Seja criativo. A história é em português do Brasil.
+                `;
+                userQuery = `Ação do jogador: "${action}". Rolagem de d20: ${diceRoll}. Gere a narração e todos os outros campos do JSON.`;
+            }
 
             try {
-                const response = await fetch(STORY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }) });
-                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const response = await fetchWithRetry(STORY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }) });
                 const result = await response.json();
                 let rawText = result.candidates[0].content.parts[0].text;
                 const startIndex = rawText.indexOf('{');
@@ -397,11 +656,16 @@
                 const updateData = JSON.parse(jsonText);
                 
                 const roomRef = doc(collectionRef, currentRoomCode);
-                
-                // Create a mutable copy of the game state to apply updates
                 const newGameState = JSON.parse(JSON.stringify(gameState));
                 
-                if (updateData.found_items) { newGameState.inventory.push(...updateData.found_items); }
+                if (updateData.items_update) {
+                    updateData.items_update.forEach(update => {
+                        const char = newGameState.characters.find(c => c.name === update.character_name);
+                        if (char && update.items) {
+                            char.inventory.push(...update.items);
+                        }
+                    });
+                }
                 if (updateData.health_changes) {
                     updateData.health_changes.forEach(change => {
                         const char = newGameState.characters.find(c => c.name === change.character_name);
@@ -419,12 +683,11 @@
                 newGameState.lastUpdate = updateData;
                 newGameState.activeCharacterIndex = (newGameState.activeCharacterIndex + 1) % newGameState.characters.length;
                 
-                // Update the document in Firestore
                 await updateDoc(roomRef, newGameState);
 
             } catch (error) {
                 console.error("Erro ao gerar história:", error);
-                storyTextElement.innerText = "Oh, não! Os ventos da magia parecem instáveis. O Mestre de Jogo tropeçou. Tente novamente ou recomece.";
+                storyTextElement.innerText = "Oh, não! Os ventos da magia parecem instáveis. O Mestre de Jogo está a ter dificuldades em contactar os reinos etéreos (serviço indisponível). Por favor, tente novamente dentro de momentos.";
                 suggestionsChips.innerHTML = `<button onclick="window.location.reload()" class="w-full action-button font-bold py-3 px-4 rounded-lg">Recomeçar do Zero</button>`;
             } finally { loadingOverlay.style.display = 'none'; }
         }
@@ -432,10 +695,13 @@
         // --- Game State Rendering ---
         function renderInventory() {
             inventoryDisplay.innerHTML = '';
-            if (!gameState.inventory || gameState.inventory.length === 0) {
-                inventoryDisplay.innerHTML = `<p class="text-gray-500 italic">A bolsa está vazia.</p>`;
+            const myCharacters = gameState.characters.filter(c => c.playerId === currentUser.uid);
+            const myItems = myCharacters.flatMap(c => c.inventory);
+
+            if (myItems.length === 0) {
+                inventoryDisplay.innerHTML = `<p class="text-gray-500 italic">A sua bolsa está vazia.</p>`;
             } else {
-                gameState.inventory.forEach(item => {
+                myItems.forEach(item => {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'inventory-item text-gray-300 p-2 rounded';
                     itemEl.textContent = item;
@@ -452,12 +718,19 @@
                 let classList = 'p-2 rounded character-card';
                 if (char.hp === 0) classList += ' downed';
                 if (index === gameState.activeCharacterIndex) classList += ' active-turn';
+                if (char.playerId === currentUser.uid) {
+                    classList += ' is-me';
+                }
                 charEl.className = classList;
 
                 const healthPercentage = (char.hp / char.maxHp) * 100;
+                const nameLabel = (char.playerId === currentUser.uid && !gameState.isSolo) 
+                    ? `${char.name} <span class="text-sky-300 text-sm font-normal">(Você)</span>` 
+                    : char.name;
+
                 charEl.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <p class="font-bold text-lg text-yellow-100">${char.name}</p>
+                        <p class="font-bold text-lg text-yellow-100">${nameLabel}</p>
                         <p class="text-sm text-gray-300">${char.hp} / ${char.maxHp}</p>
                     </div>
                     <p class="text-sm text-gray-400 mb-1">${char.class}</p>
@@ -473,7 +746,6 @@
             if (!gameState.map) return;
             mapMarkersContainer.innerHTML = '';
             
-            // Render discovered locations
             gameState.map.locations.forEach(loc => {
                 const marker = document.createElement('div');
                 marker.className = 'map-marker';
@@ -484,7 +756,6 @@
                 mapMarkersContainer.appendChild(marker);
             });
 
-            // Render player position
             const playerMarker = document.createElement('div');
             playerMarker.className = 'map-marker player-marker';
             playerMarker.style.left = `${gameState.map.currentPosition.x}%`;
@@ -493,7 +764,6 @@
             playerMarker.title = 'Sua Posição';
             mapMarkersContainer.appendChild(playerMarker);
 
-            // Update fog of war
             fogOfWar.style.maskPosition = `${gameState.map.currentPosition.x}% ${gameState.map.currentPosition.y}%`;
             fogOfWar.style.webkitMaskPosition = `${gameState.map.currentPosition.x}% ${gameState.map.currentPosition.y}%`;
         }
@@ -504,12 +774,15 @@
             actionInput.value = '';
             diceRollInput.value = '';
             
-            // Typewriter effect for story text
             let charIndex = 0;
-            function typeWriter() { if (charIndex < sceneData.text.length) { storyTextElement.innerText += sceneData.text.charAt(charIndex++); setTimeout(typeWriter, 20); } }
+            function typeWriter() { 
+                if (charIndex < sceneData.text.length) { 
+                    storyTextElement.innerText += sceneData.text.charAt(charIndex++); 
+                    setTimeout(typeWriter, 20); 
+                }
+            }
             typeWriter();
 
-            // Render suggestion chips
             sceneData.choices.forEach(choice => {
                 const chip = document.createElement('div');
                 chip.innerText = choice.text;
@@ -517,15 +790,68 @@
                 chip.onclick = () => { actionInput.value = choice.text; };
                 suggestionsChips.appendChild(chip);
             });
-
+            
+            updateAmbience(sceneData.soundscape_keyword, sceneData.map_update?.location_name, sceneData.map_update?.icon);
             renderInventory();
             renderCharacters();
             renderMap();
         }
 
+        function renderSavedSessions(sessions) {
+            const container = document.getElementById('saved-sessions-container');
+            const list = document.getElementById('saved-sessions-list');
+            list.innerHTML = '';
+
+            const filteredSessions = sessions.filter(session => session.theme && session.theme.trim() !== '');
+
+            if (filteredSessions.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            filteredSessions.forEach(session => {
+                const item = document.createElement('div');
+                item.className = 'session-item p-3 rounded-lg flex items-center justify-between';
+                
+                const themeText = document.createElement('p');
+                themeText.className = 'text-left text-yellow-100 truncate';
+                themeText.textContent = session.theme;
+                themeText.title = session.theme;
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex gap-2 flex-shrink-0 ml-4';
+
+                const continueBtn = document.createElement('button');
+                continueBtn.textContent = 'Continuar';
+                continueBtn.className = 'secondary-button text-sm py-1 px-3 rounded';
+                continueBtn.onclick = () => joinRoom(session.id);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>`;
+                deleteBtn.className = 'action-button p-1 rounded';
+                deleteBtn.title = 'Apagar Sessão';
+                deleteBtn.onclick = () => {
+                    showConfirmationModal(
+                        `Tem a certeza que quer apagar a aventura "${session.theme}"? Esta ação não pode ser desfeita.`,
+                        async () => {
+                            const roomRef = doc(collectionRef, session.id);
+                            await deleteDoc(roomRef);
+                        }
+                    );
+                };
+                
+                buttonsDiv.appendChild(continueBtn);
+                buttonsDiv.appendChild(deleteBtn);
+                item.appendChild(themeText);
+                item.appendChild(buttonsDiv);
+                list.appendChild(item);
+            });
+        }
+
         // --- Main Game Loop / UI Updater ---
         function updateUIWithGameState(data) {
-            // Safety check: if room data is gone, reload the app
             if (!data) {
                 if(unsubscribeFromRoom) unsubscribeFromRoom();
                 alert("A sala de jogo já não existe. A regressar ao menu principal.");
@@ -537,23 +863,16 @@
             
             if (data.status === 'playing') {
                 showScreen(gameContainer);
-                
                 if (data.lastUpdate) {
-                     // Generate image only once per scene update
-                    if (data.lastUpdate.image_prompt && (imageContainer.innerHTML.includes('spinner') || imageContainer.innerHTML.includes('começará em breve'))) {
-                        generateImage(data.lastUpdate.image_prompt);
-                    }
                     renderScene(data.lastUpdate);
                 }
-                
-                // Determine whose turn it is and enable/disable controls
                 const activeCharacter = gameState.characters[gameState.activeCharacterIndex];
                 const isMyTurn = gameState.isSolo || (activeCharacter && activeCharacter.playerId === currentUser.uid);
                 performActionButton.disabled = !isMyTurn;
                 actionInput.disabled = !isMyTurn;
                 diceRollInput.disabled = !isMyTurn;
+                rollDiceBtn.disabled = !isMyTurn;
                 actionInput.placeholder = isMyTurn ? "É a sua vez de agir!" : `Aguardando a vez de ${activeCharacter?.name}...`;
-
             } else if (data.status === 'lobby' || data.status === 'setup' || data.status === 'solo_character_creation') {
                 const myCharacter = data.characters.find(c => c.playerId === currentUser.uid);
 
@@ -600,21 +919,46 @@
                             }
                         });
                     }
+                    
+                    lobbyActionArea.innerHTML = '';
+                     const lobbyError = document.createElement('p');
+                     lobbyError.id = 'lobby-error-message';
+                     lobbyError.className = 'text-red-400 text-center mb-2 h-5';
+                     lobbyActionArea.appendChild(lobbyError);
+
                     if (currentUser.uid === data.hostId) {
-                        lobbyWaitingMessage.innerHTML = `<button id="force-start-btn" class="mt-4 action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Iniciar Aventura</button>`;
-                        document.getElementById('force-start-btn').onclick = async () => {
-                            if (gameState.characters.length < gameState.playerLimit) {
-                                alert('Aguarde que todos os jogadores criem os seus personagens.');
+                        const startButton = document.createElement('button');
+                        startButton.id = 'force-start-btn';
+                        startButton.className = 'w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg';
+                        startButton.textContent = 'Iniciar Aventura';
+                        startButton.onclick = async () => {
+                             lobbyError.textContent = '';
+                            if (gameState.characters.length === 0) {
+                                lobbyError.textContent = 'É necessário pelo menos um herói para iniciar a aventura.';
                                 return;
                             }
                             const roomRef = doc(collectionRef, currentRoomCode);
                             await updateDoc(roomRef, { status: 'playing' });
-                            // The first story node is generated when the game starts
                             await generateStoryNode("A aventura começa.", null);
                         };
+                        lobbyActionArea.appendChild(startButton);
                     } else {
-                        lobbyWaitingMessage.textContent = 'Aguardando o Mestre iniciar a aventura...';
+                        const waitingMessage = document.createElement('p');
+                        waitingMessage.className = 'text-gray-400 italic';
+                        waitingMessage.textContent = 'Aguardando o Mestre iniciar a aventura...';
+                        lobbyActionArea.appendChild(waitingMessage);
                     }
+                    
+                    const backButton = document.createElement('button');
+                    backButton.id = 'lobby-back-btn';
+                    backButton.className = 'w-full mt-4 secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg';
+                    backButton.textContent = 'Voltar ao Menu';
+                    backButton.onclick = () => {
+                        if (unsubscribeFromRoom) unsubscribeFromRoom();
+                        currentRoomCode = null;
+                        showScreen(entryContainer);
+                    };
+                    lobbyActionArea.appendChild(backButton);
                 }
             }
         }
@@ -652,7 +996,7 @@
         
         async function createNewRoom(isSolo = false) {
             try {
-                await authReady; // Wait for authentication to complete
+                await authReady;
                 const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
                 const roomRef = doc(collectionRef, roomCode);
                 
@@ -666,7 +1010,6 @@
                     characters: [],
                     theme: '',
                     generatedClasses: [],
-                    inventory: [],
                     storySummary: 'A aventura está prestes a começar.',
                     map: { locations: [], currentPosition: {x: 50, y: 50} },
                     activeCharacterIndex: 0,
@@ -699,6 +1042,21 @@
                authStatus.innerHTML = `Erro de permissão. <br>Verifique as regras do Firestore na sua consola Firebase.`;
                authStatus.style.display = 'block';
             }
+        }
+        
+        function listenForSavedSessions(userId) {
+            if (unsubscribeFromSessions) unsubscribeFromSessions(); 
+
+            const q = query(collectionRef, where("hostId", "==", userId));
+            unsubscribeFromSessions = onSnapshot(q, (querySnapshot) => {
+                const sessions = [];
+                querySnapshot.forEach((doc) => {
+                    sessions.push({ id: doc.id, ...doc.data() });
+                });
+                renderSavedSessions(sessions);
+            }, (error) => {
+                console.error("Erro ao obter sessões guardadas:", error);
+            });
         }
 
         // --- Event Listeners ---
@@ -748,8 +1106,7 @@
             const systemPrompt = `Você é um criador de mundos de RPG. Baseado no tema fornecido, gere uma lista de 4 classes de personagens que se encaixem perfeitamente nesse universo. Responda APENAS com um objeto JSON válido com a seguinte estrutura: {"classes": ["Classe 1", "Classe 2", "Classe 3", "Classe 4"]}.`;
             const userQuery = `O tema é: "${theme}".`;
             try {
-                const response = await fetch(STORY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }) });
-                if (!response.ok) throw new Error('API Error');
+                const response = await fetchWithRetry(STORY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } }) });
                 const result = await response.json();
                 let rawText = result.candidates[0].content.parts[0].text;
                 const startIndex = rawText.indexOf('{');
@@ -800,7 +1157,8 @@
                 class: selectedClass,
                 backstory,
                 hp: 10, maxHp: 10, 
-                playerId: currentUser.uid
+                playerId: currentUser.uid,
+                inventory: []
             };
 
             const roomRef = doc(collectionRef, currentRoomCode);
@@ -820,6 +1178,29 @@
             }
         });
         
+        rollDiceBtn.addEventListener('click', () => {
+            playSound('dice');
+            rollDiceBtn.disabled = true;
+            diceRollInput.classList.add('dice-rolling');
+
+            let rollCount = 0;
+            const maxRolls = 10;
+            const rollInterval = setInterval(() => {
+                diceRollInput.value = Math.floor(Math.random() * 20) + 1;
+                rollCount++;
+                if (rollCount >= maxRolls) {
+                    clearInterval(rollInterval);
+                    const finalRoll = Math.floor(Math.random() * 20) + 1;
+                    diceRollInput.value = finalRoll;
+                    rollDiceBtn.disabled = false;
+                    
+                    setTimeout(() => {
+                        diceRollInput.classList.remove('dice-rolling');
+                    }, 400);
+                }
+            }, 50);
+        });
+
         performActionButton.addEventListener('click', () => {
             const action = actionInput.value.trim();
             const roll = parseInt(diceRollInput.value, 10);
@@ -849,6 +1230,7 @@
                     hostGameBtn.disabled = false;
                     joinRoomBtn.disabled = false;
                     soloPlayBtn.disabled = false;
+                    listenForSavedSessions(user.uid);
                     resolve(user);
                 } else {
                     try {
@@ -865,9 +1247,9 @@
 
         // --- Page Load Initialization ---
         window.onload = () => {
-            bgMusic.volume = 0.1;
             // Add a click listener to the document to start music on user interaction
             document.body.addEventListener('click', () => {
+                bgMusic.volume = 0.1;
                 if (bgMusic.paused) {
                     bgMusic.play().catch(e => console.log("A reprodução da música foi bloqueada pelo navegador."));
                 }
@@ -878,3 +1260,4 @@
     </script>
 </body>
 </html>
+
