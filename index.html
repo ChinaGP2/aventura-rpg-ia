@@ -40,11 +40,11 @@
         .character-card.is-me { border-color: rgba(125, 211, 252, 0.7); box-shadow: 0 0 15px rgba(125, 211, 252, 0.5); }
         .session-item { background-color: rgba(0,0,0,0.2); border: 1px solid rgba(253, 224, 71, 0.2); transition: all 0.2s ease-in-out;}
         .session-item:hover { background-color: rgba(253, 224, 71, 0.1); border-color: #fef08a; }
-        #map-container { position: relative; width: 100%; padding-top: 66.66%; background-image: url('https://images.unsplash.com/photo-1563863528865-8a6b72a26012?q=80&w=2070&auto-format&fit=crop'); background-size: cover; border-radius: 0.25rem; overflow: hidden; border: 1px solid rgba(253, 224, 71, 0.2); }
+        #map-container { position: relative; width: 100%; padding-top: 66.66%; background-image: url('https://images.unsplash.com/photo-1618012523579-6233d590464f?q=80&w=2070&auto-format&fit=crop'); background-size: cover; border-radius: 0.25rem; overflow: hidden; border: 1px solid rgba(253, 224, 71, 0.2); box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
         #fog-of-war { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: black; mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); -webkit-mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: mask-position 1s ease-in-out; -webkit-mask-position: 50% 50%; mask-position: 50% 50%; }
         .map-marker { position: absolute; transform: translate(-50%, -50%); font-size: 24px; cursor: pointer; text-shadow: 0 0 5px black; transition: transform 0.2s ease-in-out; }
         .map-marker:hover { transform: translate(-50%, -50%) scale(1.2); }
-        .player-marker { animation: pulse 2s infinite; }
+        .player-marker { animation: pulse 2s infinite; cursor: default !important; }
         @keyframes pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
         #scene-ambience-container { text-shadow: 0 0 10px black; }
         input, select, textarea { box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
@@ -280,6 +280,12 @@
             </div>
         </div>
     </div>
+     <div id="map-info-modal" style="display: none;" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div class="w-full max-w-sm p-6 rounded-lg text-center" style="background: radial-gradient(ellipse at center, rgba(17, 24, 39, 0.95) 0%, rgba(17, 24, 39, 0.85) 100%); border: 1px solid rgba(253, 224, 71, 0.2);">
+            <h2 id="map-info-title" class="text-3xl title-font text-yellow-200 mb-4"></h2>
+            <button id="map-info-close-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-2 px-4 rounded-lg">Fechar</button>
+        </div>
+    </div>
     
     <audio id="bg-music" loop src="https://assets.chosic.com/wp-content/uploads/2022/01/Fantasy-Medieval-Music.mp3"></audio>
     <audio id="ambience-sound" loop></audio>
@@ -393,6 +399,9 @@
         const confirmYesBtn = document.getElementById('confirm-yes-btn');
         const confirmNoBtn = document.getElementById('confirm-no-btn');
         const savedSessionsContainer = document.getElementById('saved-sessions-container');
+        const mapInfoModal = document.getElementById('map-info-modal');
+        const mapInfoTitle = document.getElementById('map-info-title');
+        const mapInfoCloseBtn = document.getElementById('map-info-close-btn');
         let confirmCallback = null;
 
         // --- Constants ---
@@ -430,6 +439,16 @@
             confirmationModal.style.display = 'none';
         }
 
+        function showLocationInfo(location) {
+            mapInfoTitle.textContent = location.location_name;
+            mapInfoModal.style.display = 'flex';
+        }
+
+        function hideLocationInfo() {
+            mapInfoModal.style.display = 'none';
+        }
+        
+        mapInfoCloseBtn.addEventListener('click', hideLocationInfo);
         confirmYesBtn.addEventListener('click', () => {
             if (confirmCallback) {
                 confirmCallback();
@@ -836,6 +855,7 @@
                 marker.style.top = `${loc.y}%`;
                 marker.textContent = loc.icon || '📍';
                 marker.title = loc.location_name;
+                marker.addEventListener('click', () => showLocationInfo(loc));
                 mapMarkersContainer.appendChild(marker);
             });
 
