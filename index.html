@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Aventuras RPG com IA</title>
+    <title>O Oráculo do Silício</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -62,16 +62,36 @@
 
     <div id="entry-container" class="w-full max-w-md container-screen rounded-lg shadow-2xl p-8 text-center">
         <h1 class="text-5xl title-font text-yellow-200 mb-8">O Oráculo do Silício</h1>
-        <div class="space-y-4">
-            <button id="host-game-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Ser o Mestre (Criar Aventura)</button>
-            <button id="join-room-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Juntar-se a uma Aventura</button>
+        
+        <div id="auth-choice-section" class="space-y-4">
+            <button id="login-google-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2">
+                <svg class="w-6 h-6" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C42.022,35.37,44,30.038,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
+                Entrar com Google
+            </button>
             <div class="relative flex py-2 items-center">
-                <div class="flex-grow border-t border-yellow-200/20"></div>
-                <span class="flex-shrink mx-4 text-yellow-100">ou</span>
-                <div class="flex-grow border-t border-yellow-200/20"></div>
+                 <div class="flex-grow border-t border-yellow-200/20"></div>
+                 <span class="flex-shrink mx-4 text-yellow-100">ou</span>
+                 <div class="flex-grow border-t border-yellow-200/20"></div>
             </div>
-            <button id="solo-play-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg" disabled>Jogar a Solo</button>
+            <button id="login-anon-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">
+                Jogar como Anónimo
+            </button>
         </div>
+
+        <div id="main-actions" class="hidden">
+             <div id="user-display" class="mb-4 text-yellow-100 h-8"></div>
+             <div class="space-y-4">
+                <button id="host-game-btn" class="w-full action-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Ser o Mestre (Criar Aventura)</button>
+                <button id="join-room-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Juntar-se a uma Aventura</button>
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-yellow-200/20"></div>
+                    <span class="flex-shrink mx-4 text-yellow-100">ou</span>
+                    <div class="flex-grow border-t border-yellow-200/20"></div>
+                </div>
+                <button id="solo-play-btn" class="w-full secondary-button title-font tracking-wider text-lg font-bold py-3 px-4 rounded-lg">Jogar a Solo</button>
+            </div>
+        </div>
+        
         <div id="saved-sessions-container" class="mt-8 hidden">
             <div class="divider"></div>
             <h2 class="text-2xl title-font text-yellow-200 mb-4">As Suas Crónicas</h2>
@@ -268,7 +288,7 @@
     <script type="module">
         // Import Firebase modules from the CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- App Configuration ---
@@ -304,6 +324,11 @@
         // --- DOM Element References ---
         const allScreens = document.querySelectorAll('.container-screen');
         const entryContainer = document.getElementById('entry-container');
+        const authChoiceSection = document.getElementById('auth-choice-section');
+        const loginGoogleBtn = document.getElementById('login-google-btn');
+        const loginAnonBtn = document.getElementById('login-anon-btn');
+        const mainActions = document.getElementById('main-actions');
+        const userDisplay = document.getElementById('user-display');
         const soloPlayBtn = document.getElementById('solo-play-btn');
         const hostGameBtn = document.getElementById('host-game-btn');
         const joinRoomBtn = document.getElementById('join-room-btn');
@@ -367,6 +392,7 @@
         const confirmMessage = document.getElementById('confirmation-message');
         const confirmYesBtn = document.getElementById('confirm-yes-btn');
         const confirmNoBtn = document.getElementById('confirm-no-btn');
+        const savedSessionsContainer = document.getElementById('saved-sessions-container');
         let confirmCallback = null;
 
         // --- Constants ---
@@ -800,7 +826,7 @@
         }
 
         function renderMap() {
-            if (!gameState.map) return;
+            if (!gameState.map || !mapMarkersContainer) return;
             mapMarkersContainer.innerHTML = '';
             
             gameState.map.locations.forEach(loc => {
@@ -1307,28 +1333,54 @@
         });
 
         // --- Authentication Handling ---
-        const authReady = new Promise((resolve, reject) => {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUser = user;
-                    authStatus.textContent = 'Ligado!';
-                    setTimeout(() => authStatus.style.display = 'none', 2000);
-                    hostGameBtn.disabled = false;
-                    joinRoomBtn.disabled = false;
-                    soloPlayBtn.disabled = false;
-                    listenForSavedSessions(user.uid);
-                    resolve(user);
+        loginGoogleBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Erro no login com Google:", error);
+                authStatus.textContent = 'Não foi possível iniciar a sessão.';
+            }
+        });
+        
+        loginAnonBtn.addEventListener('click', async () => {
+             try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Falha no login anónimo:", error);
+                authStatus.textContent = "Não foi possível ligar ao servidor.";
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            authStatus.style.display = 'none';
+            if (user) {
+                currentUser = user;
+                authChoiceSection.classList.add('hidden');
+                mainActions.classList.remove('hidden');
+
+                if (user.isAnonymous) {
+                    userDisplay.innerHTML = `<p>A jogar como anónimo. O progresso não será guardado.</p>`;
+                    savedSessionsContainer.classList.add('hidden');
                 } else {
-                    try {
-                        // For standalone deployment, always use anonymous sign-in.
-                        await signInAnonymously(auth);
-                    } catch (error) {
-                        console.error("Falha na autenticação:", error);
-                        authStatus.textContent = 'Erro de ligação. Verifique a configuração e as regras de segurança do Firebase.';
-                        reject(error);
-                    }
+                    userDisplay.innerHTML = `
+                        <div class="flex items-center justify-center gap-4">
+                            <img src="${user.photoURL}" alt="Avatar" class="w-8 h-8 rounded-full">
+                            <p>Bem-vindo, ${user.displayName}!</p>
+                            <button id="logout-btn" class="text-sky-300 hover:underline text-sm">(Sair)</button>
+                        </div>
+                    `;
+                    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                    listenForSavedSessions(user.uid);
                 }
-            });
+            } else {
+                currentUser = null;
+                authChoiceSection.classList.remove('hidden');
+                mainActions.classList.add('hidden');
+                userDisplay.innerHTML = '';
+                savedSessionsContainer.classList.add('hidden');
+                if (unsubscribeFromSessions) unsubscribeFromSessions();
+            }
         });
 
         // --- Page Load Initialization ---
@@ -1340,11 +1392,8 @@
                     bgMusic.play().catch(e => console.log("A reprodução da música foi bloqueada pelo navegador."));
                 }
             }, { once: true });
-            
-            authReady.catch(err => console.error("A autenticação falhou no carregamento da página"));
         };
     </script>
 </body>
 </html>
-
 
