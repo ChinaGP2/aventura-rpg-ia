@@ -34,6 +34,8 @@
         .inventory-item:hover { background-color: rgba(253, 224, 71, 0.1); border-color: #fef08a; }
         .health-bar-background { background-color: #4b5563; border-radius: 0.25rem; overflow: hidden; }
         .health-bar-foreground { background: linear-gradient(to right, #ef4444, #b91c1c); height: 100%; transition: width 0.5s ease-in-out; }
+        .xp-bar-foreground { background: linear-gradient(to right, #facc15, #eab308); height: 100%; transition: width 0.5s ease-in-out; }
+        .sanity-bar-foreground { background: linear-gradient(to right, #8b5cf6, #6d28d9); height: 100%; transition: width 0.5s ease-in-out; }
         .character-card { transition: all 0.3s ease-in-out; background: rgba(0,0,0,0.2); border: 1px solid transparent; }
         .character-card.downed { opacity: 0.5; filter: grayscale(80%); }
         .character-card.active-turn { box-shadow: 0 0 15px #fef08a; transform: scale(1.02); border-color: #fef08a; background: rgba(253, 224, 71, 0.05); }
@@ -53,7 +55,15 @@
         .dice-rolling { animation: dice-roll-effect 0.4s ease-in-out; }
         .tooltip { visibility: hidden; width: 200px; background-color: #111827; color: #fff; text-align: center; border-radius: 6px; padding: 5px 0; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; border: 1px solid #fef08a; font-size: 0.8rem; line-height: 1.2; }
         .inventory-item:hover .tooltip { visibility: visible; opacity: 1; }
-        .journal-entry { border-left: 2px solid #fef08a; padding-left: 10px; margin-bottom: 8px; font-size: 0.9rem; color: #d1d5db; }
+        .journal-entry, .quest-entry, .reputation-entry { border-left: 2px solid #fef08a; padding-left: 10px; margin-bottom: 8px; font-size: 0.9rem; color: #d1d5db; }
+        .quest-entry.completed { border-left-color: #4ade80; text-decoration: line-through; color: #6b7280;}
+        .reputation-entry .rep-bar { background-color: #4b5563; }
+        .reputation-entry .rep-bar-fill { background-color: #eab308; }
+        .reputation-entry .rep-bar-fill.negative { background-color: #b91c1c; }
+        .tab-button { background-color: transparent; border: none; padding: 0.5rem 1rem; color: #9ca3af; border-bottom: 2px solid transparent; }
+        .tab-button.active { color: #fef08a; border-bottom-color: #fef08a; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
@@ -121,18 +131,28 @@
                 <button id="generate-classes-btn" class="secondary-button font-bold py-2 px-4 rounded-lg">Gerar Classes</button>
             </div>
         </div>
-        <div class="mb-4">
-            <label id="player-limit-label" for="player-limit" class="block text-sm font-medium text-yellow-100 mb-2">Limite de jogadores:</label>
-            <select id="player-limit" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
-                <option value="1">1 Herói</option>
-                <option value="2">2 Heróis</option>
-                <option value="3" selected>3 Heróis</option>
-                <option value="4">4 Heróis</option>
-                <option value="5">5 Heróis</option>
-                <option value="6">6 Heróis</option>
-                <option value="7">7 Heróis</option>
-                <option value="8">8 Heróis</option>
-            </select>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label id="player-limit-label" for="player-limit" class="block text-sm font-medium text-yellow-100 mb-2">Limite de jogadores:</label>
+                <select id="player-limit" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
+                    <option value="1">1 Herói</option>
+                    <option value="2">2 Heróis</option>
+                    <option value="3" selected>3 Heróis</option>
+                    <option value="4">4 Heróis</option>
+                    <option value="5">5 Heróis</option>
+                    <option value="6">6 Heróis</option>
+                    <option value="7">7 Heróis</option>
+                    <option value="8">8 Heróis</option>
+                </select>
+            </div>
+            <div>
+                <label for="dm-style-select" class="block text-sm font-medium text-yellow-100 mb-2">Estilo do Mestre:</label>
+                <select id="dm-style-select" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-yellow-400 focus:border-yellow-400">
+                    <option value="Bardo" selected>O Bardo (Foco na Narrativa)</option>
+                    <option value="Estratega">O Estratega (Foco Tático)</option>
+                    <option value="Caótico">O Caótico (Imprevisível)</option>
+                </select>
+            </div>
         </div>
         <div class="divider"></div>
         <p id="error-message" class="text-red-400 text-center mb-4 h-5"></p>
@@ -245,22 +265,37 @@
                 </div>
             </div>
             <div class="w-full lg:w-96 flex-shrink-0 flex flex-col lg:max-h-[calc(100vh-4rem)]">
-                <div class="overflow-y-auto pr-2">
-                    <h2 class="title-font text-2xl text-yellow-200 mb-4">Comitiva</h2>
-                    <div id="characters-display" class="space-y-4 mb-6"></div>
-                    <div class="divider"></div>
-                    <h2 class="title-font text-2xl text-yellow-200 mb-4">O Seu Inventário</h2>
-                    <div id="inventory-display" class="space-y-2 mb-6 relative"></div>
-                    <div class="divider"></div>
-                    <h2 class="title-font text-2xl text-yellow-200 mb-4">Mapa do Mundo</h2>
-                    <div id="map-container" class="mb-6">
-                        <div id="fog-of-war"></div>
-                        <div id="map-markers"></div>
-                        <div id="map-tooltip" class="hidden absolute bg-black text-white text-xs rounded py-1 px-2 pointer-events-none z-10"></div>
+                <div class="flex border-b border-yellow-200/20">
+                    <button class="tab-button active" data-tab="characters-panel">Comitiva</button>
+                    <button class="tab-button" data-tab="inventory-panel">Inventário</button>
+                    <button class="tab-button" data-tab="quests-panel">Missões</button>
+                    <button class="tab-button" data-tab="map-panel">Mundo</button>
+                </div>
+                <div class="overflow-y-auto pr-2 mt-4">
+                    <div id="characters-panel" class="tab-panel active">
+                        <div id="characters-display" class="space-y-4"></div>
                     </div>
-                    <div class="divider"></div>
-                    <h2 class="title-font text-2xl text-yellow-200 mb-4">Diário da Aventura</h2>
-                    <div id="journal-display" class="space-y-2"></div>
+                    <div id="inventory-panel" class="tab-panel">
+                        <div id="inventory-display" class="space-y-2 relative"></div>
+                        <div class="divider"></div>
+                        <h3 class="title-font text-xl text-yellow-200 mb-2">Criar Itens</h3>
+                        <div id="crafting-display" class="space-y-2"></div>
+                    </div>
+                    <div id="quests-panel" class="tab-panel">
+                        <div id="quest-log-display" class="space-y-2"></div>
+                        <div class="divider"></div>
+                        <h3 class="title-font text-xl text-yellow-200 mb-2">Reputação</h3>
+                        <div id="reputation-display" class="space-y-2"></div>
+                    </div>
+                    <div id="map-panel" class="tab-panel">
+                        <div id="map-container" class="mb-6">
+                            <div id="fog-of-war"></div>
+                            <div id="map-markers"></div>
+                        </div>
+                         <div class="divider"></div>
+                        <h3 class="title-font text-xl text-yellow-200 mb-2">Diário da Aventura</h3>
+                        <div id="journal-display" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -294,8 +329,8 @@
     <script type="module">
         // Import Firebase modules from the CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- App Configuration ---
         const GEMINI_API_KEY = "AIzaSyDfO4GbBln20IxuTVNKWf7Z0DldNnVxuU4"; 
@@ -354,6 +389,7 @@
         const setupTitle = document.getElementById('setup-title');
         const playerLimitLabel = document.getElementById('player-limit-label');
         const playerLimitSelect = document.getElementById('player-limit');
+        const dmStyleSelect = document.getElementById('dm-style-select');
         const confirmSetupBtn = document.getElementById('confirm-setup-btn');
         const setupBackBtn = document.getElementById('setup-back-btn');
         const characterCreationContainer = document.getElementById('character-creation-container');
@@ -387,6 +423,9 @@
         const charactersDisplay = document.getElementById('characters-display');
         const inventoryDisplay = document.getElementById('inventory-display');
         const journalDisplay = document.getElementById('journal-display');
+        const questLogDisplay = document.getElementById('quest-log-display');
+        const reputationDisplay = document.getElementById('reputation-display');
+        const craftingDisplay = document.getElementById('crafting-display');
         const bgMusic = document.getElementById('bg-music');
         const ambienceSound = document.getElementById('ambience-sound');
         const narrationAudio = document.getElementById('narration-audio');
@@ -457,6 +496,16 @@
         });
 
         confirmNoBtn.addEventListener('click', hideConfirmationModal);
+        
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.dataset.tab;
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
         
         // --- API Call with Retry Logic ---
         async function fetchWithRetry(url, options, retries = 3, initialDelay = 1000) {
@@ -687,38 +736,40 @@
                 if (finalRoll >= 11) playSound('success'); else playSound('failure');
             }
 
-            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, HP: ${c.hp}/${c.maxHp}, Inventário: ${c.inventory.map(i => i.name).join(', ') || 'vazio'})`).join('; ');
+            const charactersInfo = gameState.characters.map(c => `${c.name} (Classe: ${c.class}, Nível: ${c.level}, HP: ${c.hp}/${c.maxHp}, Inventário: ${c.inventory.map(i => i.name).join(', ') || 'vazio'})`).join('; ');
             
             let systemPrompt;
             let userQuery;
 
             const baseJsonResponse = `{
               "text": "...",
-              "narration_hint": "um tom de voz (ex: tenso, aliviado, misterioso, zangado).",
-              "soundscape_keyword": "uma palavra-chave em inglês (ex: forest, cave, battle, tavern) para o som ambiente.",
+              "narration_hint": "um tom de voz (ex: tenso, aliviado, misterioso).",
+              "soundscape_keyword": "uma palavra-chave (ex: forest, cave, battle, tavern).",
               "choices": [ { "text": "Sugestão de ação." }],
               "items_update": [{"character_name": "NomeDoHeroi", "items": [{"name": "Item 1", "description": "Descrição do item."}]}],
               "health_changes": [{"character_name": "NomeDoHeroi", "change": -3}],
+              "xp_award": [{"character_name": "NomeDoHeroi", "points": 10}],
               "map_update": {"x": 55, "y": 52, "location_name": "A Floresta Sombria", "icon": "🌳"},
               "journal_entry": "Um resumo de uma frase do evento para o diário.",
+              "quest_update": {"quest_name": "O Amuleto Perdido", "description": "O ferreiro pediu para encontrar o seu amuleto.", "status": "active"},
               "story_summary": "Um resumo atualizado dos eventos chave."
             }`;
 
             if (action === "A aventura começa.") {
                 systemPrompt = `
-                    Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
-                    Crie a cena de abertura. Descreva o cenário, a situação inicial, e dê o pontapé inicial. A narração é feita por IA de voz (masculina ou feminina), pode sugerir um tipo de voz no "narration_hint".
-                    Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida da cena de abertura..."').replace('"um tom de voz que corresponda à cena (ex: tenso, aliviado, misterioso, zangado)."', '"um tom de voz inspirador e épico."')}
+                    Você é um Mestre de RPG com o estilo de ${gameState.dmStyle}. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}.
+                    Crie a cena de abertura. Descreva o cenário e a situação inicial. Pode introduzir um NPC com uma missão.
+                    Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida da cena de abertura..."')}
                     A história é em português do Brasil.
                 `;
                 userQuery = `Comece a aventura.`;
             } else {
                 systemPrompt = `
-                    Você é um Mestre de RPG. O tema é "${gameState.theme}". Os heróis são: ${charactersInfo}. Resumo da história: ${gameState.storySummary}.
-                    O jogador ativo é ${activeChar.name}. Ele usou o atributo ${attribute} (bónus de +${attributeBonus}).
-                    A ação do jogador foi: "${action}". O resultado do d20 foi ${diceRoll}. O resultado final (dado + bónus) é ${finalRoll}.
-                    Narre o resultado. Considere o atributo usado.
-                    - 1: Falha Crítica. - 2-10: Falha. - 11-19: Sucesso. - 20: Sucesso Crítico (d20 natural).
+                    Você é um Mestre de RPG com o estilo de ${gameState.dmStyle}. O tema é "${gameState.theme}". Heróis: ${charactersInfo}. Resumo: ${gameState.storySummary}.
+                    O jogador ativo é ${activeChar.name}. Ele usou ${attribute} (bónus de +${attributeBonus}).
+                    Ação: "${action}". d20: ${diceRoll}. Resultado Final: ${finalRoll}.
+                    Narre o resultado. Considere o atributo usado. Pode introduzir um evento aleatório ou um NPC.
+                    - 1: Falha Crítica. - 2-10: Falha. - 11-19: Sucesso. - 20: Sucesso Crítico.
                     Sua resposta DEVE ser um objeto JSON válido com a estrutura: ${baseJsonResponse.replace('"..."', '"Narração vívida do resultado da ação."')}
                     A história é em português do Brasil.
                 `;
@@ -737,6 +788,7 @@
                 
                 const roomRef = doc(collectionRef, currentRoomCode);
                 const newGameState = JSON.parse(JSON.stringify(gameState));
+                const batch = writeBatch(db);
                 
                 if (updateData.items_update) {
                     updateData.items_update.forEach(update => {
@@ -752,6 +804,22 @@
                         if (char) { char.hp = Math.max(0, Math.min(char.maxHp, char.hp + change.change)); }
                     });
                 }
+                 if (updateData.xp_award) {
+                    updateData.xp_award.forEach(award => {
+                        const char = newGameState.characters.find(c => c.name === award.character_name);
+                        if (char) { 
+                            char.xp += award.points;
+                            const xpParaProximoNivel = char.level * 100;
+                            if(char.xp >= xpParaProximoNivel){
+                                char.level += 1;
+                                char.xp -= xpParaProximoNivel;
+                                char.attributePoints += 1;
+                                char.maxHp += 5;
+                                char.hp = char.maxHp; // Cura total ao subir de nível
+                            }
+                        }
+                    });
+                }
                 if (updateData.map_update) {
                     newGameState.map.currentPosition = { x: updateData.map_update.x, y: updateData.map_update.y };
                     const existingLocation = newGameState.map.locations.find(loc => loc.x === updateData.map_update.x && loc.y === updateData.map_update.y);
@@ -762,11 +830,20 @@
                 if(updateData.journal_entry){
                     newGameState.journal.push(updateData.journal_entry);
                 }
+                if(updateData.quest_update){
+                    const existingQuestIndex = newGameState.quests.findIndex(q => q.quest_name === updateData.quest_update.quest_name);
+                    if(existingQuestIndex > -1){
+                        newGameState.quests[existingQuestIndex] = updateData.quest_update;
+                    } else {
+                        newGameState.quests.push(updateData.quest_update);
+                    }
+                }
                 newGameState.storySummary = updateData.story_summary || newGameState.storySummary;
                 newGameState.lastUpdate = updateData;
                 newGameState.activeCharacterIndex = (newGameState.activeCharacterIndex + 1) % newGameState.characters.length;
                 
-                await updateDoc(roomRef, newGameState);
+                batch.update(roomRef, newGameState);
+                await batch.commit();
 
             } catch (error) {
                 console.error("Erro ao gerar história:", error);
@@ -808,6 +885,23 @@
                  journalDisplay.scrollTop = journalDisplay.scrollHeight;
             }
         }
+        
+        function renderQuests(){
+             questLogDisplay.innerHTML = '';
+             if(!gameState.quests || gameState.quests.length === 0) {
+                 questLogDisplay.innerHTML = `<p class="text-gray-500 italic">Nenhuma missão ativa.</p>`;
+             } else {
+                 gameState.quests.forEach(quest => {
+                    const questEl = document.createElement('div');
+                    questEl.className = `quest-entry ${quest.status}`;
+                    questEl.innerHTML = `
+                        <p class="font-bold text-yellow-100">${quest.quest_name}</p>
+                        <p>${quest.description}</p>
+                    `;
+                    questLogDisplay.appendChild(questEl);
+                 });
+             }
+        }
 
         function renderCharacters() {
             charactersDisplay.innerHTML = '';
@@ -823,6 +917,7 @@
                 charEl.className = classList;
 
                 const healthPercentage = (char.hp / char.maxHp) * 100;
+                const xpPercentage = (char.xp / (char.level * 100)) * 100;
                 const nameLabel = (char.playerId === currentUser.uid && !gameState.isSolo) 
                     ? `${char.name} <span class="text-sky-300 text-sm font-normal">(Você)</span>` 
                     : char.name;
@@ -832,11 +927,14 @@
                 charEl.innerHTML = `
                     <div class="flex justify-between items-center">
                         <p class="font-bold text-lg text-yellow-100">${nameLabel}</p>
-                        <p class="text-sm text-gray-300">${char.hp} / ${char.maxHp}</p>
+                        <p class="text-sm text-gray-300">Nível ${char.level}</p>
                     </div>
                     <p class="text-sm text-gray-400 mb-1">${char.class}</p>
-                    <div class="health-bar-background w-full h-2 mb-2">
-                        <div class="health-bar-foreground" style="width: ${healthPercentage}%;"></div>
+                    <div class="health-bar-background w-full h-2 mb-1">
+                        <div class="health-bar-foreground" style="width: ${healthPercentage}%;" title="HP: ${char.hp}/${char.maxHp}"></div>
+                    </div>
+                     <div class="health-bar-background w-full h-2 mb-2">
+                        <div class="xp-bar-foreground" style="width: ${xpPercentage}%;" title="XP: ${char.xp}/${char.level*100}"></div>
                     </div>
                     <p class="text-xs text-gray-500">${attributesText}</p>
                 `;
@@ -899,6 +997,7 @@
             renderCharacters();
             renderMap();
             renderJournal();
+            renderQuests();
         }
 
         function renderSavedSessions(sessions) {
@@ -930,13 +1029,17 @@
                 const continueBtn = document.createElement('button');
                 continueBtn.textContent = 'Continuar';
                 continueBtn.className = 'secondary-button text-sm py-1 px-3 rounded';
-                continueBtn.onclick = () => joinRoom(session.id);
+                continueBtn.onclick = (e) => { 
+                    e.stopPropagation(); 
+                    joinRoom(session.id, true);
+                };
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>`;
                 deleteBtn.className = 'action-button p-1 rounded';
                 deleteBtn.title = 'Apagar Sessão';
-                deleteBtn.onclick = () => {
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
                     showConfirmationModal(
                         `Tem a certeza que quer apagar a aventura "${session.theme}"? Esta ação não pode ser desfeita.`,
                         async () => {
@@ -1064,7 +1167,7 @@
         }
 
         // --- Room Management ---
-        async function joinRoom(roomCode) {
+        async function joinRoom(roomCode, isContinuing = false) {
             joinErrorMessage.textContent = '';
             const roomRef = doc(collectionRef, roomCode);
             const roomSnap = await getDoc(roomRef);
@@ -1075,9 +1178,9 @@
             }
             
             const roomData = roomSnap.data();
-            const isPlayerInRoom = roomData.characters.some(c => c.playerId === currentUser.uid);
+            const isPlayerInRoom = roomData.characters.some(c => c.playerId === currentUser.uid) || roomData.hostId === currentUser.uid;
 
-            if (roomData.status === 'playing' && !isPlayerInRoom) {
+            if (roomData.status === 'playing' && !isPlayerInRoom && !isContinuing) {
                 joinErrorMessage.textContent = 'Esta aventura já começou.';
                 return;
             }
@@ -1091,6 +1194,9 @@
             if (unsubscribeFromRoom) unsubscribeFromRoom();
             unsubscribeFromRoom = onSnapshot(roomRef, (doc) => {
                 updateUIWithGameState(doc.data());
+            }, (error) => {
+                console.error("Erro ao escutar a sala:", error);
+                joinErrorMessage.textContent = 'Não foi possível ligar à sala.';
             });
         }
         
@@ -1115,7 +1221,8 @@
                     activeCharacterIndex: 0,
                     lastUpdate: null,
                     playerLimit: isSolo ? 1 : 3,
-                    journal: []
+                    journal: [],
+                    quests: []
                 };
                 await setDoc(roomRef, initialGameState);
                 
@@ -1226,6 +1333,8 @@
         confirmSetupBtn.addEventListener('click', async () => {
             const themeValue = themeInput.value.trim();
             const playerLimit = parseInt(playerLimitSelect.value, 10);
+            const dmStyle = dmStyleSelect.value;
+
             if (!themeValue || !gameState.generatedClasses || gameState.generatedClasses.length === 0) {
                 errorMessage.textContent = 'Por favor, insira um tema e gere as classes.';
                 return;
@@ -1237,6 +1346,7 @@
             await updateDoc(roomRef, {
                 theme: themeValue,
                 playerLimit: playerLimit,
+                dmStyle: dmStyle,
                 status: nextStatus
             });
         });
@@ -1289,7 +1399,10 @@
                 hp: 10 + (attributes.forca * 2), 
                 maxHp: 10 + (attributes.forca * 2), 
                 playerId: currentUser.uid,
-                inventory: []
+                inventory: [],
+                level: 1,
+                xp: 0,
+                attributePoints: 0
             };
 
             const roomRef = doc(collectionRef, currentRoomCode);
@@ -1353,6 +1466,50 @@
         });
 
         // --- Authentication Handling ---
+        
+        const authReady = new Promise(resolve => {
+            getRedirectResult(auth)
+                .then((result) => {
+                    if (result) {
+                        // This is the signed-in user
+                    }
+                }).catch((error) => {
+                    console.error("Erro ao obter resultado do redirecionamento:", error);
+                }).finally(() => {
+                    onAuthStateChanged(auth, (user) => {
+                        authStatus.style.display = 'none';
+                        if (user) {
+                            currentUser = user;
+                            authChoiceSection.classList.add('hidden');
+                            mainActions.classList.remove('hidden');
+
+                            if (user.isAnonymous) {
+                                userDisplay.innerHTML = `<p>A jogar como anónimo. O progresso não será guardado.</p>`;
+                                savedSessionsContainer.classList.add('hidden');
+                            } else {
+                                userDisplay.innerHTML = `
+                                    <div class="flex items-center justify-center gap-4">
+                                        <img src="${user.photoURL}" alt="Avatar" class="w-8 h-8 rounded-full">
+                                        <p>Bem-vindo, ${user.displayName}!</p>
+                                        <button id="logout-btn" class="text-sky-300 hover:underline text-sm">(Sair)</button>
+                                    </div>
+                                `;
+                                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                                listenForSavedSessions(user.uid);
+                            }
+                        } else {
+                            currentUser = null;
+                            authChoiceSection.classList.remove('hidden');
+                            mainActions.classList.add('hidden');
+                            userDisplay.innerHTML = '';
+                            savedSessionsContainer.classList.add('hidden');
+                            if (unsubscribeFromSessions) unsubscribeFromSessions();
+                        }
+                        resolve(user);
+                    });
+                });
+        });
+
         loginGoogleBtn.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
             signInWithPopup(auth, provider).catch(error => {
@@ -1365,40 +1522,6 @@
             signInAnonymously(auth).catch(error => {
                 console.error("Falha no login anónimo:", error);
                 authStatus.textContent = "Não foi possível ligar ao servidor.";
-            });
-        });
-
-        const authReady = new Promise(resolve => {
-            onAuthStateChanged(auth, (user) => {
-                authStatus.style.display = 'none';
-                if (user) {
-                    currentUser = user;
-                    authChoiceSection.classList.add('hidden');
-                    mainActions.classList.remove('hidden');
-
-                    if (user.isAnonymous) {
-                        userDisplay.innerHTML = `<p>A jogar como anónimo. O progresso não será guardado.</p>`;
-                        savedSessionsContainer.classList.add('hidden');
-                    } else {
-                        userDisplay.innerHTML = `
-                            <div class="flex items-center justify-center gap-4">
-                                <img src="${user.photoURL}" alt="Avatar" class="w-8 h-8 rounded-full">
-                                <p>Bem-vindo, ${user.displayName}!</p>
-                                <button id="logout-btn" class="text-sky-300 hover:underline text-sm">(Sair)</button>
-                            </div>
-                        `;
-                        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-                        listenForSavedSessions(user.uid);
-                    }
-                } else {
-                    currentUser = null;
-                    authChoiceSection.classList.remove('hidden');
-                    mainActions.classList.add('hidden');
-                    userDisplay.innerHTML = '';
-                    savedSessionsContainer.classList.add('hidden');
-                    if (unsubscribeFromSessions) unsubscribeFromSessions();
-                }
-                resolve(user);
             });
         });
 
